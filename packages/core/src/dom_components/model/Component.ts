@@ -52,6 +52,9 @@ import {
   updateSymbolProps,
 } from './SymbolUtils';
 import TraitDataVariable from '../../data_sources/model/TraitDataVariable';
+import { ConditionalVariableType, DataCondition } from '../../data_sources/model/conditional_variables/DataCondition';
+import { isDynamicValue, isDynamicValueDefinition } from '../../data_sources/model/utils';
+import { DynamicValueDefinition } from '../../data_sources/types';
 
 export interface IComponent extends ExtractMethods<Component> {}
 
@@ -69,6 +72,7 @@ export const keySymbol = '__symbol';
 export const keySymbolOvrd = '__symbol_ovrd';
 export const keyUpdate = ComponentsEvents.update;
 export const keyUpdateInside = ComponentsEvents.updateInside;
+export const dynamicAttrKey = 'attributes-dynamic-value';
 
 /**
  * The Component object represents a single node of our template structure, so when you update its properties the changes are
@@ -769,11 +773,26 @@ export default class Component extends StyleableModel<ComponentProperties> {
       }
     }
 
-    const attrDataVariable = this.get('attributes-data-variable');
+    const attrDataVariable = this.get(dynamicAttrKey) as {
+      [key: string]: TraitDataVariable | DynamicValueDefinition;
+    };
     if (attrDataVariable) {
       Object.entries(attrDataVariable).forEach(([key, value]) => {
-        const dataVariable = value instanceof TraitDataVariable ? value : new TraitDataVariable(value, { em });
-        attributes[key] = dataVariable.getDataValue();
+        let dataVariable: TraitDataVariable | DataCondition;
+        if (isDynamicValue(value)) {
+          dataVariable = value;
+        } else if (isDynamicValueDefinition(value)) {
+          const type = value.type;
+
+          if (type === ConditionalVariableType) {
+            const { condition, ifTrue, ifFalse } = value;
+            dataVariable = new DataCondition(condition, ifTrue, ifFalse, { em });
+          } else {
+            dataVariable = new TraitDataVariable(value, { em });
+          }
+        }
+
+        attributes[key] = dataVariable!.getDataValue();
       });
     }
 
@@ -915,7 +934,7 @@ export default class Component extends StyleableModel<ComponentProperties> {
     this.off(event, this.initTraits);
     this.__loadTraits();
     const attrs = { ...this.get('attributes') };
-    const traitDataVariableAttr: ObjectAny = {};
+    const traitDynamicValueAttr: ObjectAny = {};
     const traits = this.traits;
     traits.each((trait) => {
       const name = trait.getName();
@@ -928,11 +947,11 @@ export default class Component extends StyleableModel<ComponentProperties> {
       }
 
       if (trait.dynamicVariable) {
-        traitDataVariableAttr[name] = trait.dynamicVariable;
+        traitDynamicValueAttr[name] = trait.dynamicVariable;
       }
     });
     traits.length && this.set('attributes', attrs);
-    Object.keys(traitDataVariableAttr).length && this.set('attributes-data-variable', traitDataVariableAttr);
+    Object.keys(traitDynamicValueAttr).length && this.set(dynamicAttrKey, traitDynamicValueAttr);
     this.on(event, this.initTraits);
     changed && em && em.trigger('component:toggled');
     return this;

@@ -4,12 +4,14 @@ import { Model } from '../../common';
 import EditorModel from '../../editor/model/Editor';
 import DataVariable, { DataVariableType } from './DataVariable';
 import ComponentView from '../../dom_components/view/ComponentView';
+import { DynamicValue } from '../types';
+import { DataCondition, ConditionalVariableType } from './conditional_variables/DataCondition';
 import ComponentDataVariable from './ComponentDataVariable';
 
 export interface DynamicVariableListenerManagerOptions {
   model: Model | ComponentView;
   em: EditorModel;
-  dataVariable: DataVariable | ComponentDataVariable;
+  dataVariable: DynamicValue;
   updateValueFromDataVariable: (value: any) => void;
 }
 
@@ -17,7 +19,7 @@ export default class DynamicVariableListenerManager {
   private dataListeners: DataVariableListener[] = [];
   private em: EditorModel;
   private model: Model | ComponentView;
-  private dynamicVariable: DataVariable | ComponentDataVariable;
+  private dynamicVariable: DynamicValue;
   private updateValueFromDynamicVariable: (value: any) => void;
 
   constructor(options: DynamicVariableListenerManagerOptions) {
@@ -42,12 +44,23 @@ export default class DynamicVariableListenerManager {
     let dataListeners: DataVariableListener[] = [];
     switch (type) {
       case DataVariableType:
-        dataListeners = this.listenToDataVariable(dynamicVariable, em);
+        dataListeners = this.listenToDataVariable(dynamicVariable as DataVariable | ComponentDataVariable, em);
+        break;
+      case ConditionalVariableType:
+        dataListeners = this.listenToConditionalVariable(dynamicVariable as DataCondition, em);
         break;
     }
     dataListeners.forEach((ls) => model.listenTo(ls.obj, ls.event, this.onChange));
 
     this.dataListeners = dataListeners;
+  }
+
+  private listenToConditionalVariable(dataVariable: DataCondition, em: EditorModel) {
+    const dataListeners = dataVariable.getDependentDataVariables().flatMap((dataVariable) => {
+      return this.listenToDataVariable(new DataVariable(dataVariable, { em: this.em }), em);
+    });
+
+    return dataListeners;
   }
 
   private listenToDataVariable(dataVariable: DataVariable | ComponentDataVariable, em: EditorModel) {

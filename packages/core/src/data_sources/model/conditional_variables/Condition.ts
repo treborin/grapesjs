@@ -1,5 +1,5 @@
+import { DataVariableDefinition, DataVariableType } from './../DataVariable';
 import EditorModel from '../../../editor/model/Editor';
-import DataVariable from '../DataVariable';
 import { evaluateVariable, isDataVariable } from '../utils';
 import { Expression, LogicGroup } from './DataCondition';
 import { LogicalGroupStatement } from './LogicalGroupStatement';
@@ -8,12 +8,14 @@ import { GenericOperation, GenericOperator } from './operators/GenericOperator';
 import { LogicalOperator } from './operators/LogicalOperator';
 import { NumberOperator, NumberOperation } from './operators/NumberOperator';
 import { StringOperator, StringOperation } from './operators/StringOperations';
+import { Model } from '../../../common';
 
-export class Condition {
+export class Condition extends Model {
   private condition: Expression | LogicGroup | boolean;
   private em: EditorModel;
 
   constructor(condition: Expression | LogicGroup | boolean, opts: { em: EditorModel }) {
+    super(condition);
     this.condition = condition;
     this.em = opts.em;
   }
@@ -65,8 +67,8 @@ export class Condition {
   /**
    * Extracts all data variables from the condition, including nested ones.
    */
-  getDataVariables(): DataVariable[] {
-    const variables: DataVariable[] = [];
+  getDataVariables() {
+    const variables: DataVariableDefinition[] = [];
     this.extractVariables(this.condition, variables);
     return variables;
   }
@@ -74,7 +76,7 @@ export class Condition {
   /**
    * Recursively extracts variables from expressions or logic groups.
    */
-  private extractVariables(condition: boolean | LogicGroup | Expression, variables: DataVariable[]): void {
+  private extractVariables(condition: boolean | LogicGroup | Expression, variables: DataVariableDefinition[]): void {
     if (this.isExpression(condition)) {
       if (isDataVariable(condition.left)) variables.push(condition.left);
       if (isDataVariable(condition.right)) variables.push(condition.right);

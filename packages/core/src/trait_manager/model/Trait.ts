@@ -1,3 +1,4 @@
+import { ConditionalVariableType, DataCondition } from './../../data_sources/model/conditional_variables/DataCondition';
 import { isString, isUndefined } from 'underscore';
 import Category from '../../abstract/ModuleCategory';
 import { LocaleOptions, Model, SetOptions } from '../../common';
@@ -10,6 +11,7 @@ import Traits from './Traits';
 import TraitDataVariable from '../../data_sources/model/TraitDataVariable';
 import { DataVariableType } from '../../data_sources/model/DataVariable';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
+import { isDynamicValueDefinition } from '../../data_sources/model/utils';
 
 /**
  * @property {String} id Trait id, eg. `my-trait-id`.
@@ -29,7 +31,7 @@ export default class Trait extends Model<TraitProperties> {
   em: EditorModel;
   view?: TraitView;
   el?: HTMLElement;
-  dynamicVariable?: TraitDataVariable;
+  dynamicVariable?: TraitDataVariable | DataCondition;
   dynamicVariableListener?: DynamicVariableListenerManager;
 
   defaults() {
@@ -57,14 +59,19 @@ export default class Trait extends Model<TraitProperties> {
     }
     this.em = em;
 
-    if (this.attributes.value && typeof this.attributes.value === 'object') {
+    if (isDynamicValueDefinition(this.attributes.value)) {
       const dataType = this.attributes.value.type;
       switch (dataType) {
         case DataVariableType:
           this.dynamicVariable = new TraitDataVariable(this.attributes.value, { em: this.em, trait: this });
           break;
+        case ConditionalVariableType: {
+          const { condition, ifTrue, ifFalse } = this.attributes.value;
+          this.dynamicVariable = new DataCondition(condition, ifTrue, ifFalse, { em: this.em });
+          break;
+        }
         default:
-          throw new Error(`Invalid data variable type. Expected '${DataVariableType}', but found '${dataType}'.`);
+          return;
       }
 
       const dv = this.dynamicVariable.getDataValue();

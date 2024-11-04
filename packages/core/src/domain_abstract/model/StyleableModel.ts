@@ -5,22 +5,19 @@ import Selectors from '../../selector_manager/model/Selectors';
 import { shallowDiff } from '../../utils/mixins';
 import EditorModel from '../../editor/model/Editor';
 import StyleDataVariable from '../../data_sources/model/StyleDataVariable';
-import { DataVariableType } from '../../data_sources/model/DataVariable';
+import { DataVariableDefinition, DataVariableType } from '../../data_sources/model/DataVariable';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
 import CssRuleView from '../../css_composer/view/CssRuleView';
 import ComponentView from '../../dom_components/view/ComponentView';
 import Frame from '../../canvas/model/Frame';
-
-export type StyleProps = Record<
-  string,
-  | string
-  | string[]
-  | {
-      type: typeof DataVariableType;
-      defaultValue: string;
-      path: string;
-    }
->;
+import {
+  DataCondition,
+  ConditionalVariableType,
+  ConditionalVariableDefinition,
+} from '../../data_sources/model/conditional_variables/DataCondition';
+import { isDynamicValue, isDynamicValueDefinition } from '../../data_sources/model/utils';
+import { DynamicValueDefinition } from '../../data_sources/types';
+export type StyleProps = Record<string, string | string[] | DataVariableDefinition | ConditionalVariableDefinition>;
 
 export type UpdateStyleOptions = SetOptions & {
   partial?: boolean;
@@ -113,16 +110,8 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
       }
 
       const styleValue = newStyle[key];
-      if (typeof styleValue === 'object' && styleValue.type === DataVariableType) {
-        const dynamicType = styleValue.type;
-        let styleDynamicVariable;
-        switch (dynamicType) {
-          case DataVariableType:
-            styleDynamicVariable = new StyleDataVariable(styleValue, { em: this.em });
-            break;
-          default:
-            throw new Error(`Invalid data variable type. Expected '${DataVariableType}', but found '${dynamicType}'.`);
-        }
+      if (isDynamicValueDefinition(styleValue)) {
+        const styleDynamicVariable = this.resolveDynamicValue(styleValue);
         newStyle[key] = styleDynamicVariable;
         this.manageDataVariableListener(styleDynamicVariable, key);
       }
@@ -150,10 +139,31 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
     return newStyle;
   }
 
+  private resolveDynamicValue(styleValue: DynamicValueDefinition) {
+    const dynamicType = styleValue.type;
+    let styleDynamicVariable;
+    switch (dynamicType) {
+      case DataVariableType:
+        styleDynamicVariable = new StyleDataVariable(styleValue, { em: this.em });
+        break;
+      case ConditionalVariableType: {
+        const { condition, ifTrue, ifFalse } = styleValue;
+        styleDynamicVariable = new DataCondition(condition, ifTrue, ifFalse, { em: this.em! });
+        break;
+      }
+      default:
+        throw new Error(
+          `Unsupported dynamic value type for styles. Only '${DataVariableType}' and '${ConditionalVariableType}' are supported. Received '${dynamicType}'.`,
+        );
+    }
+
+    return styleDynamicVariable;
+  }
+
   /**
    * Manage DataVariableListenerManager for a style property
    */
-  manageDataVariableListener(dataVar: StyleDataVariable, styleProp: string) {
+  manageDataVariableListener(dataVar: StyleDataVariable | DataCondition, styleProp: string) {
     if (this.dynamicVariableListeners[styleProp]) {
       this.dynamicVariableListeners[styleProp].listenToDynamicVariable();
     } else {
@@ -187,7 +197,7 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
   }
 
   /**
-   * Resolve data variables to their actual values
+   * Resolve dynamic values ( datasource variables - conditional variables ) to their actual values
    */
   resolveDataVariables(style: StyleProps): StyleProps {
     const resolvedStyle = { ...style };
@@ -198,16 +208,12 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
         return;
       }
 
-      if (
-        typeof styleValue === 'object' &&
-        styleValue.type === DataVariableType &&
-        !(styleValue instanceof StyleDataVariable)
-      ) {
-        const dataVar = new StyleDataVariable(styleValue, { em: this.em });
+      if (isDynamicValueDefinition(styleValue)) {
+        const dataVar = this.resolveDynamicValue(styleValue);
         resolvedStyle[key] = dataVar.getDataValue();
       }
 
-      if (styleValue instanceof StyleDataVariable) {
+      if (isDynamicValue(styleValue)) {
         resolvedStyle[key] = styleValue.getDataValue();
       }
     });

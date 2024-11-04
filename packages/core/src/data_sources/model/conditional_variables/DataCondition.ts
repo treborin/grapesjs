@@ -6,10 +6,10 @@ import { LogicalOperation } from './operators/LogicalOperator';
 import DynamicVariableListenerManager from '../DataVariableListenerManager';
 import EditorModel from '../../../editor/model/Editor';
 import { Condition } from './Condition';
-import DataVariable from '../DataVariable';
+import DataVariable, { DataVariableDefinition } from '../DataVariable';
 import { evaluateVariable, isDataVariable } from '../utils';
 
-export const DataConditionType = 'conditional-variable';
+export const ConditionalVariableType = 'conditional-variable';
 export type Expression = {
   left: any;
   operator: GenericOperation | StringOperation | NumberOperation;
@@ -21,30 +21,43 @@ export type LogicGroup = {
   statements: (Expression | LogicGroup | boolean)[];
 };
 
+export type ConditionalVariableDefinition = {
+  type: typeof ConditionalVariableType;
+  condition: Expression | LogicGroup | boolean;
+  ifTrue: any;
+  ifFalse: any;
+};
+
 export class DataCondition extends Model {
-  private conditionResult: boolean;
+  lastEvaluationResult: boolean;
   private condition: Condition;
   private em: EditorModel;
   private variableListeners: DynamicVariableListenerManager[] = [];
+  private _onValueChange?: () => void;
 
   defaults() {
     return {
-      type: DataConditionType,
+      type: ConditionalVariableType,
       condition: false,
     };
   }
 
   constructor(
     condition: Expression | LogicGroup | boolean,
-    private ifTrue: any,
-    private ifFalse: any,
-    opts: { em: EditorModel },
+    public ifTrue: any,
+    public ifFalse: any,
+    opts: { em: EditorModel; onValueChange?: () => void },
   ) {
+    if (typeof condition === 'undefined') {
+      throw new MissingConditionError();
+    }
+
     super();
     this.condition = new Condition(condition, { em: opts.em });
     this.em = opts.em;
-    this.conditionResult = this.evaluate();
+    this.lastEvaluationResult = this.evaluate();
     this.listenToDataVariables();
+    this._onValueChange = opts.onValueChange;
   }
 
   evaluate() {
@@ -52,19 +65,16 @@ export class DataCondition extends Model {
   }
 
   getDataValue(): any {
-    return this.conditionResult ? evaluateVariable(this.ifTrue, this.em) : evaluateVariable(this.ifFalse, this.em);
+    return this.lastEvaluationResult ? evaluateVariable(this.ifTrue, this.em) : evaluateVariable(this.ifFalse, this.em);
   }
 
   reevaluate(): void {
-    this.conditionResult = this.evaluate();
+    this.lastEvaluationResult = this.evaluate();
   }
 
-  toJSON() {
-    return {
-      condition: this.condition,
-      ifTrue: this.ifTrue,
-      ifFalse: this.ifFalse,
-    };
+  set onValueChange(newFunction: () => void) {
+    this._onValueChange = newFunction;
+    this.listenToDataVariables();
   }
 
   private listenToDataVariables() {
@@ -73,9 +83,7 @@ export class DataCondition extends Model {
     // Clear previous listeners to avoid memory leaks
     this.cleanupListeners();
 
-    const dataVariables = this.condition.getDataVariables();
-    if (isDataVariable(this.ifTrue)) dataVariables.push(this.ifTrue);
-    if (isDataVariable(this.ifFalse)) dataVariables.push(this.ifFalse);
+    const dataVariables = this.getDependentDataVariables();
 
     dataVariables.forEach((variable) => {
       const variableInstance = new DataVariable(variable, { em: this.em });
@@ -83,15 +91,40 @@ export class DataCondition extends Model {
         model: this as any,
         em: this.em!,
         dataVariable: variableInstance,
-        updateValueFromDataVariable: this.reevaluate.bind(this),
+        updateValueFromDataVariable: (() => {
+          this.reevaluate();
+          this._onValueChange?.();
+        }).bind(this),
       });
 
       this.variableListeners.push(listener);
     });
   }
 
+  getDependentDataVariables() {
+    const dataVariables: DataVariableDefinition[] = this.condition.getDataVariables();
+    if (isDataVariable(this.ifTrue)) dataVariables.push(this.ifTrue);
+    if (isDataVariable(this.ifFalse)) dataVariables.push(this.ifFalse);
+
+    return dataVariables;
+  }
+
   private cleanupListeners() {
     this.variableListeners.forEach((listener) => listener.destroy());
     this.variableListeners = [];
+  }
+
+  toJSON() {
+    return {
+      type: ConditionalVariableType,
+      condition: this.condition,
+      ifTrue: this.ifTrue,
+      ifFalse: this.ifFalse,
+    };
+  }
+}
+export class MissingConditionError extends Error {
+  constructor() {
+    super('No condition was provided to a conditional component.');
   }
 }

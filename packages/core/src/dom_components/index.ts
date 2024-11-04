@@ -125,6 +125,9 @@ import { BlockProperties } from '../block_manager/model/Block';
 import ComponentDataVariable from '../data_sources/model/ComponentDataVariable';
 import ComponentDataVariableView from '../data_sources/view/ComponentDataVariableView';
 import { DataVariableType } from '../data_sources/model/DataVariable';
+import { ConditionalVariableType } from '../data_sources/model/conditional_variables/DataCondition';
+import ComponentConditionalVariable from '../data_sources/model/conditional_variables/ConditionalComponent';
+import ConditionalComponentView from '../data_sources/view/ComponentDynamicView';
 
 export type ComponentEvent =
   | 'component:create'
@@ -190,6 +193,11 @@ export interface CanMoveResult {
 
 export default class ComponentManager extends ItemManagerModule<DomComponentsConfig, any> {
   componentTypes: ComponentStackItem[] = [
+    {
+      id: ConditionalVariableType,
+      model: ComponentConditionalVariable,
+      view: ConditionalComponentView,
+    },
     {
       id: DataVariableType,
       model: ComponentDataVariable,
