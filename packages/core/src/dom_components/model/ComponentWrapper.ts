@@ -36,10 +36,11 @@ export default class ComponentWrapper extends Component {
     const CmpHead = cmp?.getType(typeHead)?.model;
     const CmpDef = cmp?.getType('default').model;
     if (CmpHead) {
+      const { head, docEl } = props;
       this.set(
         {
-          head: new CmpHead({ ...props.head }, opt),
-          docEl: new CmpDef({ tagName: 'html', ...props.docEl }, opt),
+          head: head && head instanceof Component ? head : new CmpHead({ ...head }, opt),
+          docEl: docEl && docEl instanceof Component ? docEl : new CmpDef({ tagName: 'html', ...docEl }, opt),
         },
         { silent: true },
       );
@@ -56,6 +57,14 @@ export default class ComponentWrapper extends Component {
 
   get doctype(): string {
     return this.attributes.doctype || '';
+  }
+
+  clone(opt?: { symbol?: boolean | undefined; symbolInv?: boolean | undefined }): this {
+    const result = super.clone(opt);
+    result.set('head', this.get('head').clone(opt));
+    result.set('docEl', this.get('docEl').clone(opt));
+
+    return result;
   }
 
   toHTML(opts: ToHTMLOptions = {}) {
