@@ -863,7 +863,7 @@ export default class ComponentManager extends ItemManagerModule<DomComponentsCon
 
     if (!srcModel) {
       const wrapper = this.getShallowWrapper();
-      srcModel = wrapper?.append(source)[0] || null;
+      srcModel = wrapper?.append(source, { temporary: true })[0] || null;
     }
 
     result.source = srcModel;
