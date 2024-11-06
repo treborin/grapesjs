@@ -83,7 +83,7 @@ describe('ComponentConditionalVariable', () => {
   });
 
   it('should test component variable with data-source', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [
         { id: 'left_id', left: 'Name1' },
@@ -132,7 +132,7 @@ describe('ComponentConditionalVariable', () => {
   });
 
   it('should test a conditional component with a child that is also a conditional component', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [
         { id: 'left_id', left: 'Name1' },

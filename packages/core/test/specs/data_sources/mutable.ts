@@ -48,9 +48,10 @@ describe('DataSource Immutability', () => {
   });
 
   test('addRecord creates an immutable record', () => {
+    type RecordType = { id: string; name: string; value: number; mutable: boolean };
     const ds = dsm.add({
       id: 'testDs4',
-      records: [],
+      records: [] as RecordType[],
     });
 
     ds.addRecord({ id: 'id1', name: 'Name1', value: 100, mutable: false });
@@ -63,7 +64,7 @@ describe('DataSource Immutability', () => {
   test('setRecords replaces all records with immutable ones', () => {
     const ds = dsm.add({
       id: 'testDs5',
-      records: [],
+      records: [{ id: 'id1', name: 'Name1', value: 100, mutable: false }],
     });
 
     ds.setRecords([

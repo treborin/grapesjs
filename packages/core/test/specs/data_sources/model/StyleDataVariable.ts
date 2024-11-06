@@ -19,7 +19,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component initializes with data-variable style', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -43,7 +43,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component updates on style change', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -73,7 +73,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component updates to defaultValue on record removal', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data-removal',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -121,7 +121,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component initializes and updates with data-variable style for nested object', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'style-data',
       records: [
         {
@@ -163,7 +163,7 @@ describe('StyleDataVariable', () => {
       const drId = 'red-header';
       const selector = 'h1';
 
-      const addToCollectionDataSource: DataSourceProps = {
+      const addToCollectionDataSource = {
         id: dsId,
         records: [
           {

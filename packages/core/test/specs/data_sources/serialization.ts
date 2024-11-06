@@ -13,7 +13,7 @@ describe('DataSource Serialization', () => {
   let em: EditorModel;
   let dsm: DataSourceManager;
   let cmpRoot: ComponentWrapper;
-  const componentDataSource: DataSourceProps = {
+  const componentDataSource = {
     id: 'component-serialization',
     records: [
       { id: 'id1', content: 'Hello World' },
@@ -21,12 +21,12 @@ describe('DataSource Serialization', () => {
     ],
     skipFromStorage: true,
   };
-  const styleDataSource: DataSourceProps = {
+  const styleDataSource = {
     id: 'colors-data',
     records: [{ id: 'id1', color: 'red' }],
     skipFromStorage: true,
   };
-  const traitDataSource: DataSourceProps = {
+  const traitDataSource = {
     id: 'test-input',
     records: [{ id: 'id1', value: 'test-value' }],
     skipFromStorage: true,

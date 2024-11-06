@@ -1,4 +1,4 @@
-import { Collection, ObjectAny } from '../common';
+import { ObjectAny } from '../common';
 import ComponentDataVariable from './model/ComponentDataVariable';
 import DataRecord from './model/DataRecord';
 import DataRecords from './model/DataRecords';
@@ -17,6 +17,8 @@ export interface DataRecordProps extends ObjectAny {
    * Specifies if the record is mutable. Defaults to `true`.
    */
   mutable?: boolean;
+
+  [key: string]: any;
 }
 
 export interface DataVariableListener {
@@ -40,15 +42,13 @@ interface BaseDataSource {
    */
   skipFromStorage?: boolean;
 }
-export interface DataSourceType<DR extends DataRecordProps = DataRecordProps> extends BaseDataSource {
+export interface DataSourceType<DR extends DataRecordProps> extends BaseDataSource {
   records: DataRecords<DR>;
 }
-export interface DataSourceProps<DS extends DataSourceType = DataSourceType> extends BaseDataSource {
-  records?: DataRecords<ExtractRecordType<DS>> | DataRecord<ExtractRecordType<DS>>[] | ExtractRecordType<DS>[];
+export interface DataSourceProps<DR extends DataRecordProps> extends BaseDataSource {
+  records?: DataRecords<DR> | DataRecord<DR>[] | DR[];
 }
-export type ExtractRecordType<T> = T extends { records: DataRecords<infer DR> } ? DR : never;
-export type SingleRecordType<T> = T extends Collection<infer U> ? U : never;
-
+export type RecordPropsType<T> = T extends DataRecord<infer U> ? U : never;
 export interface DataSourceTransformers {
   onRecordSetValue?: (args: { id: string | number; key: string; value: any }) => any;
 }
@@ -93,3 +93,24 @@ export enum DataSourcesEvents {
   all = 'data',
 }
 /**{END_EVENTS}*/
+type DotSeparatedKeys<T> = T extends object
+  ? {
+      [K in keyof T]: K extends string
+        ? T[K] extends object
+          ? `${K}` | `${K}.${DotSeparatedKeys<T[K]>}`
+          : `${K}`
+        : never;
+    }[keyof T]
+  : never;
+
+export type DeepPartialDot<T> = {
+  [P in DotSeparatedKeys<T>]?: P extends `${infer K}.${infer Rest}`
+    ? K extends keyof T
+      ? Rest extends DotSeparatedKeys<T[K]>
+        ? DeepPartialDot<T[K]>[Rest]
+        : never
+      : never
+    : P extends keyof T
+      ? T[P]
+      : never;
+};

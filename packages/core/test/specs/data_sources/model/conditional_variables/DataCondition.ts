@@ -16,7 +16,7 @@ import EditorModel from '../../../../../src/editor/model/Editor';
 describe('DataCondition', () => {
   let em: EditorModel;
   let dsm: DataSourceManager;
-  const dataSource: DataSourceProps = {
+  const dataSource = {
     id: 'USER_STATUS_SOURCE',
     records: [
       { id: 'USER_1', age: 25, status: 'active' },
@@ -243,7 +243,7 @@ describe('DataCondition', () => {
     });
 
     test('should evaluate logical operators with multiple data sources', () => {
-      const dataSource2: DataSourceProps = {
+      const dataSource2 = {
         id: 'SECOND_DATASOURCE_ID',
         records: [{ id: 'RECORD_2', status: 'active', age: 22 }],
       };

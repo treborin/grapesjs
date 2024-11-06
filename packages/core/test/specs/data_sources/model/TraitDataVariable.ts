@@ -20,7 +20,7 @@ describe('TraitDataVariable', () => {
 
   describe('text input component', () => {
     test('component initializes data-variable value', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-input',
         records: [{ id: 'id1', value: 'test-value' }],
       };
@@ -49,7 +49,7 @@ describe('TraitDataVariable', () => {
     });
 
     test('component initializes data-variable placeholder', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-input',
         records: [{ id: 'id1', value: 'test-value' }],
       };
@@ -84,7 +84,7 @@ describe('TraitDataVariable', () => {
     });
 
     test('component updates to defaultValue on record removal', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-input-removal',
         records: [{ id: 'id1', value: 'test-value' }],
       };
@@ -119,7 +119,7 @@ describe('TraitDataVariable', () => {
     });
 
     test('component updates with data-variable value', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-input',
         records: [{ id: 'id1', value: 'test-value' }],
       };
@@ -155,7 +155,7 @@ describe('TraitDataVariable', () => {
     });
 
     test('component initializes data-variable value for nested object', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'nested-input-data',
         records: [
           {
@@ -193,7 +193,7 @@ describe('TraitDataVariable', () => {
 
   describe('checkbox input component', () => {
     test('component initializes and updates data-variable value', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-checkbox-datasource',
         records: [{ id: 'id1', value: 'true' }],
       };
@@ -236,7 +236,7 @@ describe('TraitDataVariable', () => {
 
   describe('image component', () => {
     test('component initializes and updates data-variable value', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-image-datasource',
         records: [{ id: 'id1', value: 'url-to-cat-image' }],
       };
@@ -272,7 +272,7 @@ describe('TraitDataVariable', () => {
 
   describe('link component', () => {
     test('component initializes and updates data-variable value', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-link-datasource',
         records: [{ id: 'id1', value: 'url-to-cat-image' }],
       };
@@ -309,7 +309,7 @@ describe('TraitDataVariable', () => {
 
   describe('changeProp', () => {
     test('component initializes and updates data-variable value using changeProp', () => {
-      const inputDataSource: DataSourceProps = {
+      const inputDataSource = {
         id: 'test-change-prop-datasource',
         records: [{ id: 'id1', value: 'I love grapes' }],
       };

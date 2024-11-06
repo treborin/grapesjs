@@ -12,12 +12,13 @@ describe('DataSource Storage', () => {
   let em: EditorModel;
   let dsm: DataSourceManager;
   let cmpRoot: ComponentWrapper;
-  const storedDataSource: DataSourceProps = {
+  type Record = { id: string; content: string };
+  const storedDataSource: DataSourceProps<Record> = {
     id: 'component-storage',
     records: [{ id: 'id1', content: 'Hello World' }],
   };
 
-  const nonStoredDataSource: DataSourceProps = {
+  const nonStoredDataSource: DataSourceProps<Record> = {
     id: 'component-non-storage',
     records: [{ id: 'id1', content: 'Hello World' }],
     skipFromStorage: true,

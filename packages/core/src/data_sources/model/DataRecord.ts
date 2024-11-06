@@ -25,7 +25,7 @@
 
 import { keys } from 'underscore';
 import { Model, SetOptions } from '../../common';
-import { DataRecordProps, DataSourcesEvents } from '../types';
+import { DataRecordProps, DataSourcesEvents, DeepPartialDot } from '../types';
 import DataRecords from './DataRecords';
 import DataSource from './DataSource';
 import EditorModel from '../../editor/model/Editor';
@@ -135,7 +135,7 @@ export default class DataRecord<T extends DataRecordProps = DataRecordProps> ext
    * // Sets 'name' property to 'newValue'
    */
   set<A extends _StringKey<T>>(
-    attributeName: Partial<T> | A,
+    attributeName: DeepPartialDot<T> | A,
     value?: SetOptions | T[A] | undefined,
     options?: SetOptions | undefined,
   ): this;

@@ -49,7 +49,7 @@ describe('StyleConditionalVariable', () => {
   });
 
   it('should change style based on data source changes', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [
         { id: 'left_id', left: 'Value1' },

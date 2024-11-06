@@ -49,7 +49,7 @@ describe('TraitConditionalVariable', () => {
   });
 
   it('should add a trait with a data-source condition', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [{ id: 'left_id', left: 'Name1' }],
     };
@@ -83,7 +83,7 @@ describe('TraitConditionalVariable', () => {
   });
 
   it('should change trait value with changing data-source value', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [{ id: 'left_id', left: 'Name1' }],
     };
@@ -212,7 +212,7 @@ describe('TraitConditionalVariable', () => {
   });
 
   it('should be property on the component with `changeProp:true`', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [{ id: 'left_id', left: 'Name1' }],
     };

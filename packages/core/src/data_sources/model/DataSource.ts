@@ -31,18 +31,15 @@
 
 import { AddOptions, collectionEvents, CombinedModelConstructorOptions, Model, RemoveOptions } from '../../common';
 import EditorModel from '../../editor/model/Editor';
-import { DataSourceProps } from '../types';
-import { DataSourceTransformers, DataSourceType, SingleRecordType } from '../types';
+import { DataSourceTransformers, DataSourceType, DataSourceProps, RecordPropsType, DataRecordProps } from '../types';
 import DataRecord from './DataRecord';
 import DataRecords from './DataRecords';
 import DataSources from './DataSources';
 
 interface DataSourceOptions extends CombinedModelConstructorOptions<{ em: EditorModel }, DataSource> {}
-
-export default class DataSource<
-  DS extends DataSourceType = DataSourceType,
-  DR extends SingleRecordType<DS['records']> = SingleRecordType<DS['records']>,
-> extends Model<DS> {
+export default class DataSource<DRProps extends DataRecordProps = DataRecordProps> extends Model<
+  DataSourceType<DRProps>
+> {
   transformers: DataSourceTransformers;
 
   /**
@@ -56,7 +53,7 @@ export default class DataSource<
     return {
       records: [],
       transformers: {},
-    } as unknown as Partial<DS>;
+    } as unknown as DataSourceType<DRProps>;
   }
 
   /**
@@ -64,23 +61,23 @@ export default class DataSource<
    * It sets up the transformers and initializes the collection of records.
    * If the `records` property is not an instance of `DataRecords`, it will be converted into one.
    *
-   * @param {DataSourceProps} props - Properties to initialize the data source.
+   * @param {DataSourceProps<DRProps>} props - Properties to initialize the data source.
    * @param {DataSourceOptions} opts - Options to initialize the data source.
    * @name constructor
    */
-  constructor(props: DataSourceProps<DS>, opts: DataSourceOptions) {
+  constructor(props: DataSourceProps<DRProps>, opts: DataSourceOptions) {
     super(
       {
         ...props,
         records: [],
-      } as unknown as DS,
+      } as unknown as DataSourceType<DRProps>,
       opts,
     );
     const { records, transformers } = props;
-    this.transformers = transformers || {};
+    this.transformers = transformers || ({} as DataSourceTransformers);
 
     if (!(records instanceof DataRecords)) {
-      this.set({ records: new DataRecords(records!, { dataSource: this }) } as Partial<DS>);
+      this.set({ records: new DataRecords(records!, { dataSource: this }) } as Partial<DataSourceType<DRProps>>);
     }
 
     this.listenTo(this.records, 'add', this.onAdd);
@@ -90,11 +87,11 @@ export default class DataSource<
   /**
    * Retrieves the collection of records associated with this data source.
    *
-   * @returns {DataRecords} The collection of data records.
+   * @returns {DataRecords<DRProps>} The collection of data records.
    * @name records
    */
   get records() {
-    return this.attributes.records as NonNullable<DS['records']>;
+    return this.attributes.records as NonNullable<DataRecords<DRProps>>;
   }
 
   /**
@@ -111,23 +108,23 @@ export default class DataSource<
    * Handles the `add` event for records in the data source.
    * This method triggers a change event on the newly added record.
    *
-   * @param {DataRecord} dr - The data record that was added.
+   * @param {DataRecord<DRProps>} dr - The data record that was added.
    * @private
    * @name onAdd
    */
-  onAdd(dr: DataRecord) {
+  onAdd(dr: DataRecord<DRProps>) {
     dr.triggerChange();
   }
 
   /**
    * Adds a new record to the data source.
    *
-   * @param {DataRecordProps} record - The properties of the record to add.
+   * @param {DRProps} record - The properties of the record to add.
    * @param {AddOptions} [opts] - Options to apply when adding the record.
    * @returns {DataRecord} The added data record.
    * @name addRecord
    */
-  addRecord(record: DR, opts?: AddOptions) {
+  addRecord(record: DRProps, opts?: AddOptions) {
     return this.records.add(record, opts);
   }
 
@@ -135,18 +132,18 @@ export default class DataSource<
    * Retrieves a record from the data source by its ID.
    *
    * @param {string | number} id - The ID of the record to retrieve.
-   * @returns {DataRecord | undefined} The data record, or `undefined` if no record is found with the given ID.
+   * @returns {DataRecord<DRProps> | undefined} The data record, or `undefined` if no record is found with the given ID.
    * @name getRecord
    */
   getRecord(id: string | number) {
-    return this.records.get(id) as DR | undefined;
+    return this.records.get(id) as DataRecord | undefined;
   }
 
   /**
    * Retrieves all records from the data source.
    * Each record is processed with the `getRecord` method to apply any read transformers.
    *
-   * @returns {Array<DataRecord | undefined>} An array of data records.
+   * @returns {Array<DataRecord<DRProps> | undefined>} An array of data records.
    * @name getRecords
    */
   getRecords() {
@@ -158,10 +155,10 @@ export default class DataSource<
    *
    * @param {string | number} id - The ID of the record to remove.
    * @param {RemoveOptions} [opts] - Options to apply when removing the record.
-   * @returns {DataRecord | undefined} The removed data record, or `undefined` if no record is found with the given ID.
+   * @returns {DataRecord<DRProps> | undefined} The removed data record, or `undefined` if no record is found with the given ID.
    * @name removeRecord
    */
-  removeRecord(id: string | number, opts?: RemoveOptions): DataRecord | undefined {
+  removeRecord(id: string | number, opts?: RemoveOptions) {
     const record = this.getRecord(id);
     if (record?.mutable === false && !opts?.dangerously) {
       throw new Error('Cannot remove immutable record');
@@ -173,11 +170,11 @@ export default class DataSource<
   /**
    * Replaces the existing records in the data source with a new set of records.
    *
-   * @param {Array<DataRecordProps>} records - An array of data record properties to set.
+   * @param {Array<DRProps>} records - An array of data record properties to set.
    * @returns {Array<DataRecord>} An array of the added data records.
    * @name setRecords
    */
-  setRecords(records: DR[]) {
+  setRecords(records: DRProps[]) {
     this.records.reset([], { silent: true });
 
     records.forEach((record) => {

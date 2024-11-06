@@ -42,7 +42,7 @@ import { get, stringToPath } from '../utils/mixins';
 import DataRecord from './model/DataRecord';
 import DataSource from './model/DataSource';
 import DataSources from './model/DataSources';
-import { DataSourcesEvents, DataSourceProps } from './types';
+import { DataSourcesEvents, DataSourceProps, DataRecordProps } from './types';
 import { Events } from 'backbone';
 
 export default class DataSourceManager extends ItemManagerModule<ModuleConfig, DataSources> {
@@ -68,10 +68,11 @@ export default class DataSourceManager extends ItemManagerModule<ModuleConfig, D
    *  ]
    * });
    */
-  add(props: DataSourceProps, opts: AddOptions = {}) {
+  add<DRProps extends DataRecordProps>(props: DataSourceProps<DRProps>, opts: AddOptions = {}): DataSource<DRProps> {
     const { all } = this;
     props.id = props.id || this._createId();
-    return all.add(props, opts);
+
+    return all.add(props, opts) as DataSource<DRProps>;
   }
 
   /**
