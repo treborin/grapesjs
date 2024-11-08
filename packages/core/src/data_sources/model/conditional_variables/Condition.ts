@@ -1,7 +1,7 @@
 import { DataVariableDefinition, DataVariableType } from './../DataVariable';
 import EditorModel from '../../../editor/model/Editor';
 import { evaluateVariable, isDataVariable } from '../utils';
-import { Expression, LogicGroup } from './DataCondition';
+import { ExpressionDefinition, LogicGroupDefinition } from './DataCondition';
 import { LogicalGroupStatement } from './LogicalGroupStatement';
 import { Operator } from './operators';
 import { GenericOperation, GenericOperator } from './operators/GenericOperator';
@@ -11,10 +11,10 @@ import { StringOperator, StringOperation } from './operators/StringOperations';
 import { Model } from '../../../common';
 
 export class Condition extends Model {
-  private condition: Expression | LogicGroup | boolean;
+  private condition: ExpressionDefinition | LogicGroupDefinition | boolean;
   private em: EditorModel;
 
-  constructor(condition: Expression | LogicGroup | boolean, opts: { em: EditorModel }) {
+  constructor(condition: ExpressionDefinition | LogicGroupDefinition | boolean, opts: { em: EditorModel }) {
     super(condition);
     this.condition = condition;
     this.em = opts.em;
@@ -76,7 +76,10 @@ export class Condition extends Model {
   /**
    * Recursively extracts variables from expressions or logic groups.
    */
-  private extractVariables(condition: boolean | LogicGroup | Expression, variables: DataVariableDefinition[]): void {
+  private extractVariables(
+    condition: boolean | LogicGroupDefinition | ExpressionDefinition,
+    variables: DataVariableDefinition[],
+  ): void {
     if (this.isExpression(condition)) {
       if (isDataVariable(condition.left)) variables.push(condition.left);
       if (isDataVariable(condition.right)) variables.push(condition.right);
@@ -88,14 +91,14 @@ export class Condition extends Model {
   /**
    * Checks if a condition is a LogicGroup.
    */
-  private isLogicGroup(condition: any): condition is LogicGroup {
+  private isLogicGroup(condition: any): condition is LogicGroupDefinition {
     return condition && typeof condition.logicalOperator !== 'undefined' && Array.isArray(condition.statements);
   }
 
   /**
    * Checks if a condition is an Expression.
    */
-  private isExpression(condition: any): condition is Expression {
+  private isExpression(condition: any): condition is ExpressionDefinition {
     return condition && typeof condition.left !== 'undefined' && typeof condition.operator === 'string';
   }
 

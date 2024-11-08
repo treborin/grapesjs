@@ -2,10 +2,10 @@ import Component from '../../../dom_components/model/Component';
 import Components from '../../../dom_components/model/Components';
 import { ComponentDefinition, ComponentOptions } from '../../../dom_components/model/types';
 import { toLowerCase } from '../../../utils/mixins';
-import { DataCondition, ConditionalVariableType, Expression, LogicGroup } from './DataCondition';
+import { DataCondition, ConditionalVariableType, ExpressionDefinition, LogicGroupDefinition } from './DataCondition';
 
 type ConditionalComponentDefinition = {
-  condition: Expression | LogicGroup | boolean;
+  condition: ExpressionDefinition | LogicGroupDefinition | boolean;
   ifTrue: any;
   ifFalse: any;
 };

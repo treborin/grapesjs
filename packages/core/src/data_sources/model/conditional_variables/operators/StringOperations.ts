@@ -5,6 +5,8 @@ export enum StringOperation {
   startsWith = 'startsWith',
   endsWith = 'endsWith',
   matchesRegex = 'matchesRegex',
+  equalsIgnoreCase = 'equalsIgnoreCase',
+  trimEquals = 'trimEquals',
 }
 
 export class StringOperator extends Operator {
@@ -12,7 +14,7 @@ export class StringOperator extends Operator {
     super();
   }
 
-  evaluate(left: string, right: string): boolean {
+  evaluate(left: string, right: string) {
     switch (this.operator) {
       case StringOperation.contains:
         return left.includes(right);
@@ -21,7 +23,12 @@ export class StringOperator extends Operator {
       case StringOperation.endsWith:
         return left.endsWith(right);
       case StringOperation.matchesRegex:
+        if (!right) throw new Error('Regex pattern must be provided.');
         return new RegExp(right).test(left);
+      case StringOperation.equalsIgnoreCase:
+        return left.toLowerCase() === right.toLowerCase();
+      case StringOperation.trimEquals:
+        return left.trim() === right.trim();
       default:
         throw new Error(`Unsupported string operator: ${this.operator}`);
     }

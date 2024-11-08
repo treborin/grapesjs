@@ -40,6 +40,7 @@ export default class DynamicVariableListenerManager {
     const { em, dynamicVariable, model } = this;
     this.removeListeners();
 
+    // @ts-ignore
     const type = dynamicVariable.get('type');
     let dataListeners: DataVariableListener[] = [];
     switch (type) {

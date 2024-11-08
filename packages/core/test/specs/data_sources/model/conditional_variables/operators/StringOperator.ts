@@ -52,6 +52,43 @@ describe('StringOperator', () => {
     });
   });
 
+  describe('Operator: equalsIgnoreCase', () => {
+    test('should return true when left equals right ignoring case', () => {
+      const operator = new StringOperator(StringOperation.equalsIgnoreCase);
+      expect(operator.evaluate('Hello World', 'hello world')).toBe(true);
+    });
+
+    test('should return false when left does not equal right ignoring case', () => {
+      const operator = new StringOperator(StringOperation.equalsIgnoreCase);
+      expect(operator.evaluate('Hello World', 'hello there')).toBe(false);
+    });
+
+    test('should handle empty strings correctly', () => {
+      const operator = new StringOperator(StringOperation.equalsIgnoreCase);
+      expect(operator.evaluate('', '')).toBe(true);
+      expect(operator.evaluate('Hello', '')).toBe(false);
+      expect(operator.evaluate('', 'Hello')).toBe(false);
+    });
+  });
+
+  describe('Operator: trimEquals', () => {
+    test('should return true when left equals right after trimming', () => {
+      const operator = new StringOperator(StringOperation.trimEquals);
+      expect(operator.evaluate('  Hello World  ', 'Hello World')).toBe(true);
+    });
+
+    test('should return false when left does not equal right after trimming', () => {
+      const operator = new StringOperator(StringOperation.trimEquals);
+      expect(operator.evaluate('  Hello World  ', 'Hello there')).toBe(false);
+    });
+
+    test('should handle cases with only whitespace', () => {
+      const operator = new StringOperator(StringOperation.trimEquals);
+      expect(operator.evaluate('   ', '')).toBe(true); // Both should trim to empty
+      expect(operator.evaluate('   ', 'non-empty')).toBe(false);
+    });
+  });
+
   describe('Edge Case Tests', () => {
     test('should return false for contains with empty right string', () => {
       const operator = new StringOperator(StringOperation.contains);
