@@ -67,6 +67,10 @@ interface ModelRTE {
   currentView?: ComponentView;
 }
 
+export interface RteDisableResult {
+  forceSync?: boolean;
+}
+
 export default class RichTextEditorModule extends Module<RichTextEditorConfig & { pStylePrefix?: string }> {
   pfx: string;
   toolbar!: HTMLElement;
@@ -400,14 +404,18 @@ export default class RichTextEditorModule extends Module<RichTextEditorConfig & 
    * @param {Object} rte The instance of already defined RTE
    * @private
    * */
-  disable(view: ComponentView, rte?: RichTextEditor, opts: DisableOptions = {}) {
+  async disable(view: ComponentView, rte?: RichTextEditor, opts: DisableOptions = {}) {
+    let result: RteDisableResult = {};
     const { em } = this;
     const customRte = this.customRte;
     // @ts-ignore
     const el = view.getChildrenContainer();
 
     if (customRte) {
-      customRte.disable(el, rte);
+      const res = await customRte.disable(el, rte);
+      if (res) {
+        result = res;
+      }
     } else {
       rte && rte.disable();
     }
@@ -420,5 +428,7 @@ export default class RichTextEditorModule extends Module<RichTextEditorConfig & 
     }
 
     this.model.unset('currentView');
+
+    return result;
   }
 }

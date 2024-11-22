@@ -555,19 +555,19 @@ export default class EditorModel extends Model {
 
         if (!isUndefined(min)) {
           while (min !== index) {
-            this.addSelected(coll.at(min));
+            this.addSelected(coll.at(min), opts);
             min++;
           }
         }
 
         if (!isUndefined(max)) {
           while (max !== index) {
-            this.addSelected(coll.at(max));
+            this.addSelected(coll.at(max), opts);
             max--;
           }
         }
 
-        return this.addSelected(model);
+        return this.addSelected(model, opts);
       }
 
       !multiple && this.removeSelected(selected.filter((s) => s !== model));
