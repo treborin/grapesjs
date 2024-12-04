@@ -71,7 +71,7 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
    * Enable element content editing
    * @private
    * */
-  async onActive(ev: Event) {
+  async onActive(ev: MouseEvent) {
     const { rte, em } = this;
     const { result, delegate } = this.canActivate();
 
@@ -91,7 +91,8 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
 
     if (rte) {
       try {
-        this.activeRte = await rte.enable(this, this.activeRte!, { event: ev });
+        const view = this;
+        this.activeRte = await rte.enable(view, this.activeRte!, { event: ev, view });
       } catch (err) {
         em.logError(err as any);
       }

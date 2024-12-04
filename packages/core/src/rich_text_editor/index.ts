@@ -40,14 +40,14 @@
 import { debounce, isFunction, isString } from 'underscore';
 import { Module } from '../abstract';
 import { Debounced, DisableOptions, Model } from '../common';
-import ComponentView from '../dom_components/view/ComponentView';
 import EditorModel from '../editor/model/Editor';
 import { createEl, cx, on, removeEl } from '../utils/dom';
 import { hasWin, isDef } from '../utils/mixins';
-import defConfig, { CustomRTE, RichTextEditorConfig } from './config/config';
+import defConfig, { CustomRTE, CustomRteOptions, RichTextEditorConfig } from './config/config';
 import RichTextEditor, { RichTextEditorAction } from './model/RichTextEditor';
 import CanvasEvents from '../canvas/types';
 import { ComponentsEvents } from '../dom_components/types';
+import ComponentTextView from '../dom_components/view/ComponentTextView';
 
 export type RichTextEditorEvent = 'rte:enable' | 'rte:disable' | 'rte:custom';
 
@@ -64,7 +64,7 @@ const events = {
 };
 
 interface ModelRTE {
-  currentView?: ComponentView;
+  currentView?: ComponentTextView;
 }
 
 export interface RteDisableResult {
@@ -360,13 +360,13 @@ export default class RichTextEditorModule extends Module<RichTextEditorConfig & 
    * @param {Object} rte The instance of already defined RTE
    * @private
    * */
-  async enable(view: ComponentView, rte: RichTextEditor, opts: any = {}) {
+  async enable(view: ComponentTextView, rte: RichTextEditor, opts: CustomRteOptions) {
     this.lastEl = view.el;
     const { customRte, em } = this;
     const el = view.getChildrenContainer();
 
     this.toolbar.style.display = '';
-    const rteInst = await (customRte ? customRte.enable(el, rte) : this.initRte(el).enable(opts));
+    const rteInst = await (customRte ? customRte.enable(el, rte, opts) : this.initRte(el).enable(opts));
 
     if (em) {
       setTimeout(this.updatePosition.bind(this), 0);
@@ -380,13 +380,14 @@ export default class RichTextEditorModule extends Module<RichTextEditorConfig & 
     return rteInst;
   }
 
-  async getContent(view: ComponentView, rte: RichTextEditor) {
+  async getContent(view: ComponentTextView, rte: RichTextEditor) {
     const { customRte } = this;
+    const el = view.getChildrenContainer();
 
     if (customRte && rte && isFunction(customRte.getContent)) {
-      return await customRte.getContent(view.el, rte);
+      return await customRte.getContent(el, rte, { view });
     } else {
-      return view.getChildrenContainer().innerHTML;
+      return el.innerHTML;
     }
   }
 
@@ -404,15 +405,13 @@ export default class RichTextEditorModule extends Module<RichTextEditorConfig & 
    * @param {Object} rte The instance of already defined RTE
    * @private
    * */
-  async disable(view: ComponentView, rte?: RichTextEditor, opts: DisableOptions = {}) {
+  async disable(view: ComponentTextView, rte?: RichTextEditor, opts: DisableOptions = {}) {
     let result: RteDisableResult = {};
     const { em } = this;
     const customRte = this.customRte;
-    // @ts-ignore
-    const el = view.getChildrenContainer();
 
     if (customRte) {
-      const res = await customRte.disable(el, rte);
+      const res = await customRte.disable(view.getChildrenContainer(), rte, { ...opts, view });
       if (res) {
         result = res;
       }
