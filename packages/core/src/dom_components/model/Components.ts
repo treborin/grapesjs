@@ -64,7 +64,7 @@ const getComponentsFromDefs = (
     }
 
     if (components) {
-      const newComponents = getComponentsFromDefs(components, all);
+      const newComponents = getComponentsFromDefs(components, all, opts);
 
       if (isFunction(result.components)) {
         const cmps = result.components();
