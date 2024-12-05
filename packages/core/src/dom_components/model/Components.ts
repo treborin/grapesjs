@@ -63,15 +63,20 @@ const getComponentsFromDefs = (
       }
     }
 
+    // Here `result` might be a Component
+    const cmp = isFunction(result.components) ? (result as unknown as Component) : null;
+
     if (components) {
       const newComponents = getComponentsFromDefs(components, all, opts);
 
-      if (isFunction(result.components)) {
-        const cmps = result.components();
-        cmps.length > 0 && cmps.reset(newComponents, opts);
+      if (cmp) {
+        cmp.components().reset(newComponents, opts);
       } else {
         result.components = newComponents;
       }
+    } else if (cmp) {
+      // The component already exists but the parsed one is without components
+      cmp.components().reset([], opts);
     }
 
     return result;
