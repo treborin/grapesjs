@@ -8,19 +8,7 @@
  * });
  * ```
  *
- * ## Available Events
- *
- * You can make use of available events in this way
- * ```js
- * editor.on('EVENT-NAME', (some, argument) => {
- *    // do something
- * })
- * ```
- *
- * * `update` - The structure of the template is updated (its HTML/CSS)
- * * `undo` - Undo executed
- * * `redo` - Redo executed
- * * `load` - Editor is loaded
+ * {REPLACE_EVENTS}
  *
  * ### Components
  * Check the [Components](/api/components.html) module.
@@ -91,6 +79,7 @@ import UtilsModule from '../utils';
 import html from '../utils/html';
 import defConfig, { EditorConfig, EditorConfigKeys } from './config/config';
 import EditorModel, { EditorLoadOptions } from './model/Editor';
+import { EditorEvents } from './types';
 import EditorView from './view/EditorView';
 
 export type ParsedRule = {
@@ -130,6 +119,7 @@ export default class Editor implements IBaseModule<EditorConfig> {
   $: any;
   em: EditorModel;
   config: EditorConfigType;
+  events = EditorEvents;
 
   constructor(config: EditorConfig = {}, opts: any = {}) {
     const defaults = defConfig();

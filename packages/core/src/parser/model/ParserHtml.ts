@@ -6,9 +6,9 @@ import { HTMLParseResult, HTMLParserOptions, ParseNodeOptions, ParserConfig } fr
 import BrowserParserHtml from './BrowserParserHtml';
 import { doctypeToString } from '../../utils/dom';
 import { isDef } from '../../utils/mixins';
+import { ParserEvents } from '../types';
 
 const modelAttrStart = 'data-gjs-';
-const event = 'parse:html';
 
 const ParserHtml = (em?: EditorModel, config: ParserConfig & { returnArray?: boolean } = {}) => {
   return {
@@ -365,7 +365,7 @@ const ParserHtml = (em?: EditorModel, config: ParserConfig & { returnArray?: boo
         if (styleStr) res.css = parserCss.parse(styleStr);
       }
 
-      em?.trigger(`${event}:root`, { input, root: root });
+      em?.Parser?.__emitEvent(ParserEvents.htmlRoot, { input, root });
       let resHtml: HTMLParseResult['html'] = [];
 
       if (asDocument) {
@@ -379,7 +379,7 @@ const ParserHtml = (em?: EditorModel, config: ParserConfig & { returnArray?: boo
       }
 
       res.html = resHtml;
-      em?.trigger(event, { input, output: res, options });
+      em?.Parser?.__emitEvent(ParserEvents.html, { input, output: res, options });
 
       return res;
     },

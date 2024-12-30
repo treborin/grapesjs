@@ -267,7 +267,7 @@ Component> {
 
     if (isWrapper && parsed.doctype) {
       const root = parent as ComponentWrapper;
-      const { components: bodyCmps, ...restBody } = (parsed.html as ComponentDefinitionDefined) || {};
+      const { components: bodyCmps = [], ...restBody } = (parsed.html as ComponentDefinitionDefined) || {};
       const { components: headCmps, ...restHead } = parsed.head || {};
       components = bodyCmps!;
       root.set(restBody as any, opt);

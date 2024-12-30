@@ -3,6 +3,7 @@ import { CssRuleJSON } from '../../css_composer/model/CssRule';
 import EditorModel from '../../editor/model/Editor';
 import { ParsedCssRule, ParserConfig } from '../config/config';
 import BrowserCssParser, { parseSelector, createNode } from './BrowserParserCss';
+import { ParserEvents } from '../types';
 
 const ParserCss = (em?: EditorModel, config: ParserConfig = {}) => ({
   /**
@@ -10,13 +11,22 @@ const ParserCss = (em?: EditorModel, config: ParserConfig = {}) => ({
    * @param  {String} input CSS string
    * @return {Array<Object>}
    */
-  parse(input: string) {
+  parse(input: string, opts: { throwOnError?: boolean } = {}) {
     let output: CssRuleJSON[] = [];
     const { parserCss } = config;
     const editor = em?.Editor;
-    const nodes = parserCss ? parserCss(input, editor!) : BrowserCssParser(input);
+    let nodes: CssRuleJSON[] | ParsedCssRule[] = [];
+    let error: unknown;
+
+    try {
+      nodes = parserCss ? parserCss(input, editor!) : BrowserCssParser(input);
+    } catch (err) {
+      error = err;
+      if (opts.throwOnError) throw err;
+    }
+
     nodes.forEach((node) => (output = output.concat(this.checkNode(node))));
-    em?.trigger('parse:css', { input, output, nodes });
+    em?.Parser?.__emitEvent(ParserEvents.css, { input, output, nodes, error });
 
     return output;
   },

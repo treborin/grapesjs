@@ -2,6 +2,7 @@ import { View, $ } from '../../common';
 import { getHostName } from '../../utils/host-name';
 import { appendStyles } from '../../utils/mixins';
 import EditorModel from '../model/Editor';
+import { EditorEvents } from '../types';
 
 export default class EditorView extends View<EditorModel> {
   constructor(model: EditorModel) {
@@ -20,7 +21,7 @@ export default class EditorView extends View<EditorModel> {
       }
 
       setTimeout(() => {
-        model.trigger('load', model.Editor);
+        model.trigger(EditorEvents.load, model.Editor);
         model.clearDirtyCount();
       });
     });
@@ -91,6 +92,6 @@ export default class EditorView extends View<EditorModel> {
       }
     });
 
-    this.trigger('telemetry:sent');
+    this.trigger(EditorEvents.telemetryInit);
   }
 }
