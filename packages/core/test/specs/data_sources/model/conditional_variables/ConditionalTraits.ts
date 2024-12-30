@@ -1,16 +1,11 @@
 import { DataSourceManager, Editor } from '../../../../../src';
-import { DataVariableType } from '../../../../../src/data_sources/model/DataVariable';
-import { MissingConditionError } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { ConditionalVariableType } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
-import { GenericOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/GenericOperator';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
-import { DataSourceProps } from '../../../../../src/data_sources/types';
-import Component, { dynamicAttrKey } from '../../../../../src/dom_components/model/Component';
 import ComponentWrapper from '../../../../../src/dom_components/model/ComponentWrapper';
 import EditorModel from '../../../../../src/editor/model/Editor';
-import { filterObjectForSnapshot, setupTestEditor } from '../../../../common';
+import { setupTestEditor } from '../../../../common';
 
-describe('TraitConditionalVariable', () => {
+describe('conditional traits', () => {
   let editor: Editor;
   let em: EditorModel;
   let dsm: DataSourceManager;
@@ -23,15 +18,21 @@ describe('TraitConditionalVariable', () => {
   afterEach(() => {
     em.destroy();
   });
+  test('set component attribute to trait value if component has no value for the attribute', () => {
+    const inputDataSource = {
+      id: 'test-input',
+      records: [{ id: 'id1', value: 'test-value' }],
+    };
+    dsm.add(inputDataSource);
 
-  it('should add a trait with a condition evaluating to a string', () => {
-    const component = cmpRoot.append({
-      tagName: 'h1',
-      type: 'text',
+    const cmp = cmpRoot.append({
+      tagName: 'input',
       traits: [
+        'name',
         {
           type: 'text',
-          name: 'title',
+          label: 'Value',
+          name: 'value',
           value: {
             type: ConditionalVariableType,
             condition: {
@@ -39,217 +40,115 @@ describe('TraitConditionalVariable', () => {
               operator: NumberOperation.greaterThan,
               right: -1,
             },
-            ifTrue: 'Some title',
+            ifTrue: 'test-value',
           },
         },
       ],
     })[0];
 
-    testComponentAttr(component, 'title', 'Some title');
+    const input = cmp.getEl();
+    expect(input?.getAttribute('value')).toBe('test-value');
+    expect(cmp?.getAttributes().value).toBe('test-value');
   });
 
-  it('should add a trait with a data-source condition', () => {
-    const dataSource = {
-      id: 'ds1',
-      records: [{ id: 'left_id', left: 'Name1' }],
+  test('set component prop to trait value if component has no value for the prop', () => {
+    const inputDataSource = {
+      id: 'test-input',
+      records: [{ id: 'id1', value: 'test-value' }],
     };
-    dsm.add(dataSource);
+    dsm.add(inputDataSource);
 
-    const component = cmpRoot.append({
-      tagName: 'h1',
-      type: 'text',
+    const cmp = cmpRoot.append({
+      tagName: 'input',
       traits: [
+        'name',
         {
           type: 'text',
-          name: 'title',
-          value: {
-            type: ConditionalVariableType,
-            condition: {
-              left: {
-                type: DataVariableType,
-                path: 'ds1.left_id.left',
-              },
-              operator: GenericOperation.equals,
-              right: 'Name1',
-            },
-            ifTrue: 'Valid name',
-            ifFalse: 'Invalid name',
-          },
-        },
-      ],
-    })[0];
-
-    testComponentAttr(component, 'title', 'Valid name');
-  });
-
-  it('should change trait value with changing data-source value', () => {
-    const dataSource = {
-      id: 'ds1',
-      records: [{ id: 'left_id', left: 'Name1' }],
-    };
-    dsm.add(dataSource);
-
-    const component = cmpRoot.append({
-      tagName: 'h1',
-      type: 'text',
-      traits: [
-        {
-          type: 'text',
-          name: 'title',
-          value: {
-            type: ConditionalVariableType,
-            condition: {
-              left: {
-                type: DataVariableType,
-                path: 'ds1.left_id.left',
-              },
-              operator: GenericOperation.equals,
-              right: 'Name1',
-            },
-            ifTrue: 'Correct name',
-            ifFalse: 'Incorrect name',
-          },
-        },
-      ],
-    })[0];
-
-    testComponentAttr(component, 'title', 'Correct name');
-    dsm.get('ds1').getRecord('left_id')?.set('left', 'Different name');
-    testComponentAttr(component, 'title', 'Incorrect name');
-  });
-
-  it('should throw an error if no condition is passed in trait', () => {
-    expect(() => {
-      cmpRoot.append({
-        tagName: 'h1',
-        type: 'text',
-        traits: [
-          {
-            type: 'text',
-            name: 'invalidTrait',
-            value: {
-              type: ConditionalVariableType,
-            },
-          },
-        ],
-      });
-    }).toThrow(MissingConditionError);
-  });
-
-  it('should store traits with conditional values correctly', () => {
-    const conditionalTrait = {
-      type: ConditionalVariableType,
-      condition: {
-        left: 0,
-        operator: NumberOperation.greaterThan,
-        right: -1,
-      },
-      ifTrue: 'Positive',
-    };
-    cmpRoot.append({
-      tagName: 'h1',
-      type: 'text',
-      traits: [
-        {
-          type: 'text',
-          name: 'dynamicTrait',
-          value: conditionalTrait,
-        },
-      ],
-    })[0];
-
-    const projectData = editor.getProjectData();
-    const snapshot = filterObjectForSnapshot(projectData);
-    expect(snapshot).toMatchSnapshot(``);
-    const page = projectData.pages[0];
-    const frame = page.frames[0];
-    const storedComponent = frame.component.components[0];
-
-    expect(storedComponent[dynamicAttrKey]).toEqual({
-      dynamicTrait: conditionalTrait,
-    });
-  });
-
-  it('should load traits with conditional values correctly', () => {
-    const projectData = {
-      pages: [
-        {
-          frames: [
-            {
-              component: {
-                components: [
-                  {
-                    attributes: {
-                      dynamicTrait: 'Default',
-                    },
-                    [dynamicAttrKey]: {
-                      dynamicTrait: {
-                        condition: {
-                          left: 0,
-                          operator: '>',
-                          right: -1,
-                        },
-                        ifTrue: 'Positive',
-                        type: 'conditional-variable',
-                      },
-                    },
-                    type: 'text',
-                  },
-                ],
-                type: 'wrapper',
-              },
-            },
-          ],
-          type: 'main',
-        },
-      ],
-    };
-
-    editor.loadProjectData(projectData);
-    const components = editor.getComponents();
-    const component = components.models[0];
-    expect(component.getAttributes()).toEqual({ dynamicTrait: 'Positive' });
-  });
-
-  it('should be property on the component with `changeProp:true`', () => {
-    const dataSource = {
-      id: 'ds1',
-      records: [{ id: 'left_id', left: 'Name1' }],
-    };
-    dsm.add(dataSource);
-
-    const component = cmpRoot.append({
-      tagName: 'h1',
-      type: 'text',
-      traits: [
-        {
-          type: 'text',
-          name: 'title',
+          label: 'Value',
+          name: 'value',
           changeProp: true,
           value: {
             type: ConditionalVariableType,
             condition: {
-              left: {
-                type: DataVariableType,
-                path: 'ds1.left_id.left',
-              },
-              operator: GenericOperation.equals,
-              right: 'Name1',
+              left: 0,
+              operator: NumberOperation.greaterThan,
+              right: -1,
             },
-            ifTrue: 'Correct name',
-            ifFalse: 'Incorrect name',
+            ifTrue: 'test-value',
           },
         },
       ],
     })[0];
 
-    // TODO: make dynamic values not to change the attributes if `changeProp:true`
-    // expect(component.getView()?.el.getAttribute('title')).toBeNull();
-    expect(component.get('title')).toBe('Correct name');
+    expect(cmp?.get('value')).toBe('test-value');
+  });
 
-    dsm.get('ds1').getRecord('left_id')?.set('left', 'Different name');
-    // expect(component.getView()?.el.getAttribute('title')).toBeNull();
-    expect(component.get('title')).toBe('Incorrect name');
+  test('should keep component prop if component already has a value for the prop', () => {
+    const inputDataSource = {
+      id: 'test-input',
+      records: [{ id: 'id1', value: 'test-value' }],
+    };
+    dsm.add(inputDataSource);
+
+    const cmp = cmpRoot.append({
+      tagName: 'input',
+      attributes: {
+        value: 'existing-value',
+      },
+      traits: [
+        'name',
+        {
+          type: 'text',
+          label: 'Value',
+          name: 'value',
+          changeProp: true,
+          value: {
+            type: ConditionalVariableType,
+            condition: {
+              left: 0,
+              operator: NumberOperation.greaterThan,
+              right: -1,
+            },
+            ifTrue: 'existing-value',
+          },
+        },
+      ],
+    })[0];
+
+    const input = cmp.getEl();
+    expect(input?.getAttribute('value')).toBe('existing-value');
+    expect(cmp?.getAttributes().value).toBe('existing-value');
+  });
+
+  test('should keep component prop if component already has a value for the prop', () => {
+    const inputDataSource = {
+      id: 'test-input',
+      records: [{ id: 'id1', value: 'test-value' }],
+    };
+    dsm.add(inputDataSource);
+
+    const cmp = cmpRoot.append({
+      tagName: 'input',
+      value: 'existing-value',
+      traits: [
+        'name',
+        {
+          type: 'text',
+          label: 'Value',
+          name: 'value',
+          changeProp: true,
+          value: {
+            type: ConditionalVariableType,
+            condition: {
+              left: 0,
+              operator: NumberOperation.greaterThan,
+              right: -1,
+            },
+            ifTrue: 'existing-value',
+          },
+        },
+      ],
+    })[0];
   });
 
   it('should handle objects as traits (other than dynamic values)', () => {
@@ -274,10 +173,3 @@ describe('TraitConditionalVariable', () => {
     expect(component.getAttributes().title).toEqual(traitValue);
   });
 });
-
-function testComponentAttr(component: Component, trait: string, value: string) {
-  expect(component).toBeDefined();
-  expect(component.getTrait(trait).get('value')).toBe(value);
-  expect(component.getAttributes()[trait]).toBe(value);
-  expect(component.getView()?.el.getAttribute(trait)).toBe(value);
-}

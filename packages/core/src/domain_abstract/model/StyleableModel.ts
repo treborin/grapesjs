@@ -168,7 +168,6 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
       this.dynamicVariableListeners[styleProp].listenToDynamicVariable();
     } else {
       this.dynamicVariableListeners[styleProp] = new DynamicVariableListenerManager({
-        model: this,
         em: this.em!,
         dataVariable: dataVar,
         updateValueFromDataVariable: () => this.updateView(),

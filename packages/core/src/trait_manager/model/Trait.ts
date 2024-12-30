@@ -9,9 +9,7 @@ import TraitsEvents, { TraitGetValueOptions, TraitOption, TraitProperties, Trait
 import TraitView from '../view/TraitView';
 import Traits from './Traits';
 import TraitDataVariable from '../../data_sources/model/TraitDataVariable';
-import { DataVariableType } from '../../data_sources/model/DataVariable';
 import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
-import { isDynamicValueDefinition } from '../../data_sources/model/utils';
 
 /**
  * @property {String} id Trait id, eg. `my-trait-id`.
@@ -58,31 +56,6 @@ export default class Trait extends Model<TraitProperties> {
       this.setTarget(target);
     }
     this.em = em;
-
-    if (isDynamicValueDefinition(this.attributes.value)) {
-      const dataType = this.attributes.value.type;
-      switch (dataType) {
-        case DataVariableType:
-          this.dynamicVariable = new TraitDataVariable(this.attributes.value, { em: this.em, trait: this });
-          break;
-        case ConditionalVariableType: {
-          const { condition, ifTrue, ifFalse } = this.attributes.value;
-          this.dynamicVariable = new DataCondition(condition, ifTrue, ifFalse, { em: this.em });
-          break;
-        }
-        default:
-          return;
-      }
-
-      const dv = this.dynamicVariable.getDataValue();
-      this.set({ value: dv });
-      this.dynamicVariableListener = new DynamicVariableListenerManager({
-        model: this,
-        em: this.em,
-        dataVariable: this.dynamicVariable,
-        updateValueFromDataVariable: this.updateValueFromDataVariable.bind(this),
-      });
-    }
   }
 
   get parent() {
@@ -115,11 +88,6 @@ export default class Trait extends Model<TraitProperties> {
         (!getValue ? this.getValue() : undefined);
       !isUndefined(value) && this.set({ value }, { silent: true });
     }
-  }
-
-  updateValueFromDataVariable(value: string) {
-    this.setValue(value);
-    this.trigger('change:value');
   }
 
   /**
@@ -167,12 +135,6 @@ export default class Trait extends Model<TraitProperties> {
    * @returns {any}
    */
   getValue(opts?: TraitGetValueOptions) {
-    if (this.dynamicVariable) {
-      const dValue = this.dynamicVariable.getDataValue();
-
-      return dValue;
-    }
-
     return this.getTargetValue(opts);
   }
 

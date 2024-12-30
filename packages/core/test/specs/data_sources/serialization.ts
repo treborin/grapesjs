@@ -4,10 +4,7 @@ import ComponentWrapper from '../../../src/dom_components/model/ComponentWrapper
 import { DataVariableType } from '../../../src/data_sources/model/DataVariable';
 import EditorModel from '../../../src/editor/model/Editor';
 import { ProjectData } from '../../../src/storage_manager';
-import { DataSourceProps } from '../../../src/data_sources/types';
 import { filterObjectForSnapshot, setupTestEditor } from '../../common';
-import { dynamicAttrKey } from '../../../src/dom_components/model/Component';
-
 describe('DataSource Serialization', () => {
   let editor: Editor;
   let em: EditorModel;
@@ -27,6 +24,11 @@ describe('DataSource Serialization', () => {
     skipFromStorage: true,
   };
   const traitDataSource = {
+    id: 'test-input',
+    records: [{ id: 'id1', value: 'test-value' }],
+    skipFromStorage: true,
+  };
+  const propsDataSource = {
     id: 'test-input',
     records: [{ id: 'id1', value: 'test-value' }],
     skipFromStorage: true,
@@ -65,6 +67,54 @@ describe('DataSource Serialization', () => {
   });
 
   describe('.getProjectData', () => {
+    test('Dynamic Props', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      cmpRoot.append({
+        tagName: 'input',
+        content: dataVariable,
+        customProp: dataVariable,
+      })[0];
+
+      const projectData = editor.getProjectData();
+      const page = projectData.pages[0];
+      const frame = page.frames[0];
+      const component = frame.component.components[0];
+      expect(component['content']).toEqual(dataVariable);
+      expect(component['customProp']).toEqual(dataVariable);
+
+      const snapshot = filterObjectForSnapshot(projectData);
+      expect(snapshot).toMatchSnapshot(``);
+    });
+
+    test('Dynamic Attributes', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      cmpRoot.append({
+        tagName: 'input',
+        attributes: {
+          dynamicAttribute: dataVariable,
+        },
+      })[0];
+
+      const projectData = editor.getProjectData();
+      const page = projectData.pages[0];
+      const frame = page.frames[0];
+      const component = frame.component.components[0];
+      expect(component['attributes']['dynamicAttribute']).toEqual(dataVariable);
+
+      const snapshot = filterObjectForSnapshot(projectData);
+      expect(snapshot).toMatchSnapshot(``);
+    });
+
     test('ComponentDataVariable', () => {
       const dataVariable = {
         type: DataVariableType,
@@ -119,45 +169,134 @@ describe('DataSource Serialization', () => {
       const snapshot = filterObjectForSnapshot(projectData);
       expect(snapshot).toMatchSnapshot(``);
     });
-
-    test('TraitDataVariable', () => {
-      const dataVariable = {
-        type: DataVariableType,
-        defaultValue: 'default',
-        path: `${traitDataSource.id}.id1.value`,
-      };
-
-      cmpRoot.append({
-        tagName: 'input',
-        traits: [
-          'name',
-          {
-            type: 'text',
-            label: 'Value',
-            name: 'value',
-            value: dataVariable,
-          },
-        ],
-      })[0];
-
-      const projectData = editor.getProjectData();
-      const page = projectData.pages[0];
-      const frame = page.frames[0];
-      const component = frame.component.components[0];
-      expect(component).toHaveProperty(dynamicAttrKey);
-      expect(component[dynamicAttrKey]).toEqual({
-        value: dataVariable,
-      });
-      expect(component.attributes).toEqual({
-        value: 'test-value',
-      });
-
-      const snapshot = filterObjectForSnapshot(projectData);
-      expect(snapshot).toMatchSnapshot(``);
-    });
   });
 
   describe('.loadProjectData', () => {
+    test('Dynamic Props', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      const componentProjectData: ProjectData = {
+        assets: [],
+        pages: [
+          {
+            frames: [
+              {
+                component: {
+                  components: [
+                    {
+                      content: dataVariable,
+                      customProp: dataVariable,
+                      tagName: 'input',
+                      void: true,
+                    },
+                  ],
+                  docEl: {
+                    tagName: 'html',
+                  },
+                  head: {
+                    type: 'head',
+                  },
+                  stylable: [
+                    'background',
+                    'background-color',
+                    'background-image',
+                    'background-repeat',
+                    'background-attachment',
+                    'background-position',
+                    'background-size',
+                  ],
+                  type: 'wrapper',
+                },
+                id: 'frameid',
+              },
+            ],
+            id: 'pageid',
+            type: 'main',
+          },
+        ],
+        styles: [],
+        symbols: [],
+        dataSources: [propsDataSource],
+      };
+
+      editor.loadProjectData(componentProjectData);
+
+      const components = editor.getComponents();
+      const component = components.models[0];
+      expect(component.get('content')).toEqual('test-value');
+      expect(component.get('customProp')).toEqual('test-value');
+
+      dsm.get(propsDataSource.id).getRecord('id1')?.set('value', 'updated-value');
+      expect(component.get('content')).toEqual('updated-value');
+      expect(component.get('customProp')).toEqual('updated-value');
+    });
+
+    test('Dynamic Attributes', () => {
+      const dataVariable = {
+        type: DataVariableType,
+        defaultValue: 'default',
+        path: `${propsDataSource.id}.id1.value`,
+      };
+
+      const componentProjectData: ProjectData = {
+        assets: [],
+        pages: [
+          {
+            frames: [
+              {
+                component: {
+                  components: [
+                    {
+                      attributes: {
+                        dynamicAttribute: dataVariable,
+                      },
+                      tagName: 'input',
+                      void: true,
+                    },
+                  ],
+                  docEl: {
+                    tagName: 'html',
+                  },
+                  head: {
+                    type: 'head',
+                  },
+                  stylable: [
+                    'background',
+                    'background-color',
+                    'background-image',
+                    'background-repeat',
+                    'background-attachment',
+                    'background-position',
+                    'background-size',
+                  ],
+                  type: 'wrapper',
+                },
+                id: 'frameid',
+              },
+            ],
+            id: 'pageid',
+            type: 'main',
+          },
+        ],
+        styles: [],
+        symbols: [],
+        dataSources: [propsDataSource],
+      };
+
+      editor.loadProjectData(componentProjectData);
+
+      const components = editor.getComponents();
+      const component = components.at(0);
+      expect(component.getAttributes()['dynamicAttribute']).toEqual('test-value');
+
+      dsm.get(propsDataSource.id).getRecord('id1')?.set('value', 'updated-value');
+      expect(component.getAttributes()['dynamicAttribute']).toEqual('updated-value');
+    });
+
     test('ComponentDataVariable', () => {
       const componentProjectData: ProjectData = {
         assets: [],
@@ -282,69 +421,6 @@ describe('DataSource Serialization', () => {
 
       expect(style).toEqual({
         color: 'red',
-      });
-    });
-
-    test('TraitDataVariable', () => {
-      const componentProjectData: ProjectData = {
-        assets: [],
-        pages: [
-          {
-            frames: [
-              {
-                component: {
-                  components: [
-                    {
-                      attributes: {
-                        value: 'default',
-                      },
-                      [dynamicAttrKey]: {
-                        value: {
-                          path: 'test-input.id1.value',
-                          type: 'data-variable',
-                          defaultValue: 'default',
-                        },
-                      },
-                      tagName: 'input',
-                      void: true,
-                    },
-                  ],
-                  docEl: {
-                    tagName: 'html',
-                  },
-                  head: {
-                    type: 'head',
-                  },
-                  stylable: [
-                    'background',
-                    'background-color',
-                    'background-image',
-                    'background-repeat',
-                    'background-attachment',
-                    'background-position',
-                    'background-size',
-                  ],
-                  type: 'wrapper',
-                },
-                id: 'frameid',
-              },
-            ],
-            id: 'pageid',
-            type: 'main',
-          },
-        ],
-        styles: [],
-        symbols: [],
-        dataSources: [traitDataSource],
-      };
-
-      editor.loadProjectData(componentProjectData);
-
-      const components = editor.getComponents();
-      const component = components.models[0];
-      const value = component.getAttributes();
-      expect(value).toEqual({
-        value: 'test-value',
       });
     });
   });

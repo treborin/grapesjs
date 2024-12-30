@@ -94,7 +94,6 @@ export class DataCondition extends Model<DataConditionType> {
     dataVariables.forEach((variable) => {
       const variableInstance = new DataVariable(variable, { em: this.em });
       const listener = new DynamicVariableListenerManager({
-        model: this as any,
         em: this.em!,
         dataVariable: variableInstance,
         updateValueFromDataVariable: (() => {

@@ -3,13 +3,11 @@ import { stringToPath } from '../../utils/mixins';
 import { Model } from '../../common';
 import EditorModel from '../../editor/model/Editor';
 import DataVariable, { DataVariableType } from './DataVariable';
-import ComponentView from '../../dom_components/view/ComponentView';
 import { DynamicValue } from '../types';
 import { DataCondition, ConditionalVariableType } from './conditional_variables/DataCondition';
 import ComponentDataVariable from './ComponentDataVariable';
 
 export interface DynamicVariableListenerManagerOptions {
-  model: Model | ComponentView;
   em: EditorModel;
   dataVariable: DynamicValue;
   updateValueFromDataVariable: (value: any) => void;
@@ -18,13 +16,12 @@ export interface DynamicVariableListenerManagerOptions {
 export default class DynamicVariableListenerManager {
   private dataListeners: DataVariableListener[] = [];
   private em: EditorModel;
-  private model: Model | ComponentView;
-  private dynamicVariable: DynamicValue;
+  dynamicVariable: DynamicValue;
   private updateValueFromDynamicVariable: (value: any) => void;
+  private model = new Model();
 
   constructor(options: DynamicVariableListenerManagerOptions) {
     this.em = options.em;
-    this.model = options.model;
     this.dynamicVariable = options.dataVariable;
     this.updateValueFromDynamicVariable = options.updateValueFromDataVariable;
 
@@ -37,7 +34,7 @@ export default class DynamicVariableListenerManager {
   };
 
   listenToDynamicVariable() {
-    const { em, dynamicVariable, model } = this;
+    const { em, dynamicVariable } = this;
     this.removeListeners();
 
     // @ts-ignore
@@ -51,7 +48,7 @@ export default class DynamicVariableListenerManager {
         dataListeners = this.listenToConditionalVariable(dynamicVariable as DataCondition, em);
         break;
     }
-    dataListeners.forEach((ls) => model.listenTo(ls.obj, ls.event, this.onChange));
+    dataListeners.forEach((ls) => this.model.listenTo(ls.obj, ls.event, this.onChange));
 
     this.dataListeners = dataListeners;
   }
@@ -81,8 +78,7 @@ export default class DynamicVariableListenerManager {
   }
 
   private removeListeners() {
-    const { model } = this;
-    this.dataListeners.forEach((ls) => model.stopListening(ls.obj, ls.event, this.onChange));
+    this.dataListeners.forEach((ls) => this.model.stopListening(ls.obj, ls.event, this.onChange));
     this.dataListeners = [];
   }
 

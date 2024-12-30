@@ -8,7 +8,6 @@ export default class ComponentDataVariableView extends ComponentView<ComponentDa
   initialize(opt = {}) {
     super.initialize(opt);
     this.dynamicVariableListener = new DynamicVariableListenerManager({
-      model: this,
       em: this.em!,
       dataVariable: this.model,
       updateValueFromDataVariable: () => this.postRender(),
