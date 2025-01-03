@@ -19,6 +19,7 @@ import Frame from '../model/Frame';
 import { GetBoxRectOptions, ToWorldOption } from '../types';
 import FrameView from './FrameView';
 import FramesView from './FramesView';
+import { ComponentsEvents } from '../../dom_components/types';
 
 export interface MarginPaddingOffsets {
   marginTop?: number;
@@ -567,9 +568,10 @@ export default class CanvasView extends ModuleView<Canvas> {
    * @private
    */
   //TODO change type after the ComponentView was updated to ts
-  updateScript(view: any) {
-    const model = view.model;
-    const id = model.getId();
+  updateScript(view: ComponentView) {
+    const component = view.model;
+    const id = component.getId();
+    const dataToEmit = { component, view, el: view.el };
 
     if (!view.scriptContainer) {
       view.scriptContainer = createEl('div', { 'data-id': id });
@@ -582,21 +584,23 @@ export default class CanvasView extends ModuleView<Canvas> {
     // In editor, I make use of setTimeout as during the append process of elements
     // those will not be available immediately, therefore 'item' variable
     const script = document.createElement('script');
-    const scriptFn = model.getScriptString();
-    const scriptFnStr = model.get('script-props') ? scriptFn : `function(){\n${scriptFn}\n;}`;
-    const scriptProps = JSON.stringify(model.__getScriptProps());
+    const scriptFn = component.getScriptString();
+    const scriptFnStr = component.get('script-props') ? scriptFn : `function(){\n${scriptFn}\n;}`;
+    const scriptProps = JSON.stringify(component.__getScriptProps());
     script.innerHTML = `
       setTimeout(function() {
         var item = document.getElementById('${id}');
         if (!item) return;
         var script = (${scriptFnStr}).bind(item);
-        script(${scriptProps});
+        script(${scriptProps}, { el: item });
       }, 1);`;
-    // #873
-    // Adding setTimeout will make js components work on init of the editor
+
+    // #873 Adding setTimeout will make js components work on init of the editor
     setTimeout(() => {
+      component.emitWithEitor(ComponentsEvents.scriptMountBefore, dataToEmit);
       const scr = view.scriptContainer;
       scr?.appendChild(script);
+      component.emitWithEitor(ComponentsEvents.scriptMount, dataToEmit);
     }, 0);
   }
 

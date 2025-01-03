@@ -1762,6 +1762,10 @@ export default class Component extends StyleableModel<ComponentProperties> {
       });
   }
 
+  emitWithEitor(event: string, data?: Record<string, any>) {
+    [this.em, this].forEach((item) => item?.trigger(event, data));
+  }
+
   /**
    * Execute callback function on itself and all inner components
    * @param  {Function} clb Callback function, the model is passed as an argument

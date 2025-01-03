@@ -61,6 +61,21 @@ export enum ComponentsEvents {
   selectBefore = 'component:select:before',
 
   /**
+   * @event `component:script:mount` Component with script is mounted.
+   * @example
+   * editor.on('component:script:mount', ({ component, view, el }) => { ... });
+   */
+  scriptMount = 'component:script:mount',
+  scriptMountBefore = 'component:script:mount:before',
+
+  /**
+   * @event `component:script:unmount` Component with script is unmounted. This is triggered when the component is removed or the script execution has to be refreshed. This event might be useful to clean up resources.
+   * @example
+   * editor.on('component:script:unmount', ({ component, view, el }) => { ... });
+   */
+  scriptUnmount = 'component:script:unmount',
+
+  /**
    * @event `symbol:main:add` Added new main symbol.
    * @example
    * editor.on('symbol:main:add', ({ component }) => { ... });

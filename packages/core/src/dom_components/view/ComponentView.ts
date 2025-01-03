@@ -13,6 +13,7 @@ import Component, { avoidInline } from '../model/Component';
 import Components from '../model/Components';
 import { ComponentOptions } from '../model/types';
 import ComponentsView from './ComponentsView';
+import { ComponentsEvents } from '../types';
 
 type ClbObj = ReturnType<ComponentView['_clbObj']>;
 
@@ -515,7 +516,9 @@ TComp> {
    * Recreate the element of the view
    */
   reset() {
-    const { el } = this;
+    const view = this;
+    const { el, model } = view;
+    view.scriptContainer && model.emitWithEitor(ComponentsEvents.scriptUnmount, { component: model, view, el });
     // @ts-ignore
     this.el = '';
     this._ensureElement();

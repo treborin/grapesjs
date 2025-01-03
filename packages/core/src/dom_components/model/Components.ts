@@ -200,6 +200,10 @@ Component> {
 
       if (!removed.opt.temporary) {
         em.Commands.run('core:component-style-clear', { target: removed });
+        removed.views.forEach((view) => {
+          view.scriptContainer &&
+            removed.emitWithEitor(ComponentsEvents.scriptUnmount, { component: removed, view, el: view.el });
+        });
         removed.removed();
         removed.trigger('removed');
         em.trigger(ComponentsEvents.remove, removed);
