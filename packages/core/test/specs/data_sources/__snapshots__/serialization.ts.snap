@@ -3,6 +3,7 @@
 exports[`DataSource Serialization .getProjectData ComponentDataVariable 1`] = `
 {
   "assets": [],
+  "dataSources": [],
   "pages": [
     {
       "frames": [
@@ -50,9 +51,115 @@ exports[`DataSource Serialization .getProjectData ComponentDataVariable 1`] = `
 }
 `;
 
+exports[`DataSource Serialization .getProjectData Dynamic Attributes 1`] = `
+{
+  "assets": [],
+  "dataSources": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "components": [
+              {
+                "attributes": {
+                  "dynamicAttribute": {
+                    "defaultValue": "default",
+                    "path": "test-input.id1.value",
+                    "type": "data-variable",
+                  },
+                },
+                "tagName": "input",
+                "void": true,
+              },
+            ],
+            "docEl": {
+              "tagName": "html",
+            },
+            "head": {
+              "type": "head",
+            },
+            "stylable": [
+              "background",
+              "background-color",
+              "background-image",
+              "background-repeat",
+              "background-attachment",
+              "background-position",
+              "background-size",
+            ],
+            "type": "wrapper",
+          },
+          "id": "data-variable-id",
+        },
+      ],
+      "id": "data-variable-id",
+      "type": "main",
+    },
+  ],
+  "styles": [],
+  "symbols": [],
+}
+`;
+
+exports[`DataSource Serialization .getProjectData Dynamic Props 1`] = `
+{
+  "assets": [],
+  "dataSources": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "components": [
+              {
+                "content": {
+                  "defaultValue": "default",
+                  "path": "test-input.id1.value",
+                  "type": "data-variable",
+                },
+                "customProp": {
+                  "defaultValue": "default",
+                  "path": "test-input.id1.value",
+                  "type": "data-variable",
+                },
+                "tagName": "input",
+                "void": true,
+              },
+            ],
+            "docEl": {
+              "tagName": "html",
+            },
+            "head": {
+              "type": "head",
+            },
+            "stylable": [
+              "background",
+              "background-color",
+              "background-image",
+              "background-repeat",
+              "background-attachment",
+              "background-position",
+              "background-size",
+            ],
+            "type": "wrapper",
+          },
+          "id": "data-variable-id",
+        },
+      ],
+      "id": "data-variable-id",
+      "type": "main",
+    },
+  ],
+  "styles": [],
+  "symbols": [],
+}
+`;
+
 exports[`DataSource Serialization .getProjectData StyleDataVariable 1`] = `
 {
   "assets": [],
+  "dataSources": [],
   "pages": [
     {
       "frames": [
@@ -106,59 +213,6 @@ exports[`DataSource Serialization .getProjectData StyleDataVariable 1`] = `
       },
     },
   ],
-  "symbols": [],
-}
-`;
-
-exports[`DataSource Serialization .getProjectData TraitDataVariable 1`] = `
-{
-  "assets": [],
-  "pages": [
-    {
-      "frames": [
-        {
-          "component": {
-            "components": [
-              {
-                "attributes": {
-                  "value": "test-value",
-                },
-                "attributes-data-variable": {
-                  "value": {
-                    "defaultValue": "default",
-                    "path": "test-input.id1.value",
-                    "type": "data-variable",
-                  },
-                },
-                "tagName": "input",
-                "void": true,
-              },
-            ],
-            "docEl": {
-              "tagName": "html",
-            },
-            "head": {
-              "type": "head",
-            },
-            "stylable": [
-              "background",
-              "background-color",
-              "background-image",
-              "background-repeat",
-              "background-attachment",
-              "background-position",
-              "background-size",
-            ],
-            "type": "wrapper",
-          },
-          "id": "data-variable-id",
-        },
-      ],
-      "id": "data-variable-id",
-      "type": "main",
-    },
-  ],
-  "styles": [],
   "symbols": [],
 }
 `;

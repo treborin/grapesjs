@@ -63,15 +63,20 @@ const getComponentsFromDefs = (
       }
     }
 
-    if (components) {
-      const newComponents = getComponentsFromDefs(components, all);
+    // Here `result` might be a Component
+    const cmp = isFunction(result.components) ? (result as unknown as Component) : null;
 
-      if (isFunction(result.components)) {
-        const cmps = result.components();
-        cmps.length > 0 && cmps.reset(newComponents, opts);
+    if (components) {
+      const newComponents = getComponentsFromDefs(components, all, opts);
+
+      if (cmp) {
+        cmp.components().reset(newComponents, opts);
       } else {
         result.components = newComponents;
       }
+    } else if (cmp) {
+      // The component already exists but the parsed one is without components
+      cmp.components().reset([], opts);
     }
 
     return result;
@@ -195,6 +200,10 @@ Component> {
 
       if (!removed.opt.temporary) {
         em.Commands.run('core:component-style-clear', { target: removed });
+        removed.views.forEach((view) => {
+          view.scriptContainer &&
+            removed.emitWithEitor(ComponentsEvents.scriptUnmount, { component: removed, view, el: view.el });
+        });
         removed.removed();
         removed.trigger('removed');
         em.trigger(ComponentsEvents.remove, removed);
@@ -254,14 +263,15 @@ Component> {
 
   parseString(value: string, opt: ParseStringOptions = {}) {
     const { em, domc, parent } = this;
-    const asDocument = opt.asDocument && parent?.is('wrapper');
+    const isWrapper = parent?.is('wrapper');
+    const asDocument = opt.asDocument && isWrapper;
     const cssc = em.Css;
     const parsed = em.Parser.parseHtml(value, { asDocument, ...opt.parserOptions });
     let components = parsed.html;
 
-    if (asDocument) {
+    if (isWrapper && parsed.doctype) {
       const root = parent as ComponentWrapper;
-      const { components: bodyCmps, ...restBody } = (parsed.html as ComponentDefinitionDefined) || {};
+      const { components: bodyCmps = [], ...restBody } = (parsed.html as ComponentDefinitionDefined) || {};
       const { components: headCmps, ...restHead } = parsed.head || {};
       components = bodyCmps!;
       root.set(restBody as any, opt);

@@ -36,17 +36,17 @@
  */
 
 import { ItemManagerModule, ModuleConfig } from '../abstract/Module';
-import { AddOptions, ObjectAny, RemoveOptions } from '../common';
+import { AddOptions, collectionEvents, ObjectAny, RemoveOptions } from '../common';
 import EditorModel from '../editor/model/Editor';
 import { get, stringToPath } from '../utils/mixins';
 import DataRecord from './model/DataRecord';
 import DataSource from './model/DataSource';
 import DataSources from './model/DataSources';
-import { DataSourcesEvents, DataSourceProps } from './types';
+import { DataSourcesEvents, DataSourceProps, DataRecordProps } from './types';
 import { Events } from 'backbone';
 
 export default class DataSourceManager extends ItemManagerModule<ModuleConfig, DataSources> {
-  storageKey = '';
+  storageKey = 'dataSources';
   events = DataSourcesEvents;
   destroy(): void {}
 
@@ -68,10 +68,11 @@ export default class DataSourceManager extends ItemManagerModule<ModuleConfig, D
    *  ]
    * });
    */
-  add(props: DataSourceProps, opts: AddOptions = {}) {
+  add<DRProps extends DataRecordProps>(props: DataSourceProps<DRProps>, opts: AddOptions = {}): DataSource<DRProps> {
     const { all } = this;
     props.id = props.id || this._createId();
-    return all.add(props, opts);
+
+    return all.add(props, opts) as DataSource<DRProps>;
   }
 
   /**
@@ -101,7 +102,6 @@ export default class DataSourceManager extends ItemManagerModule<ModuleConfig, D
       acc[ds.id] = ds.records.reduce((accR, dr, i) => {
         const dataRecord = dr;
 
-        accR[i] = dataRecord.attributes;
         accR[dataRecord.id || i] = dataRecord.attributes;
 
         return accR;
@@ -147,5 +147,40 @@ export default class DataSourceManager extends ItemManagerModule<ModuleConfig, D
     }
 
     return result;
+  }
+
+  /**
+   * Store data sources to a JSON object.
+   * @returns {Array} Stored data sources.
+   */
+  store() {
+    const data: any[] = [];
+    this.all.forEach((dataSource) => {
+      const skipFromStorage = dataSource.get('skipFromStorage');
+      if (!skipFromStorage) {
+        data.push({
+          id: dataSource.id,
+          name: dataSource.get('name' as any),
+          records: dataSource.records.toJSON(),
+          skipFromStorage,
+        });
+      }
+    });
+
+    return { [this.storageKey]: data };
+  }
+
+  /**
+   * Load data sources from a JSON object.
+   * @param {Object} data The data object containing data sources.
+   * @returns {Object} Loaded data sources.
+   */
+  load(data: any) {
+    return this.loadProjectData(data);
+  }
+
+  postLoad() {
+    const { em, all } = this;
+    em.listenTo(all, collectionEvents, (m, c, o) => em.changesUp(o || c));
   }
 }

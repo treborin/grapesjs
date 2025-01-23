@@ -49,16 +49,16 @@
  * * [getType](#gettype)
  * * [getTypes](#gettypes)
  *
- * * [Component]: component.html
+ * [Component]: component.html
  *
  * @module Components
  */
 import { debounce, isArray, isBoolean, isEmpty, isFunction, isString, isSymbol, result } from 'underscore';
 import { ItemManagerModule } from '../abstract/Module';
-import { AddOptions, ObjectAny } from '../common';
+import { ObjectAny } from '../common';
 import EditorModel from '../editor/model/Editor';
 import { isComponent } from '../utils/mixins';
-import defaults, { DomComponentsConfig } from './config/config';
+import defConfig, { DomComponentsConfig } from './config/config';
 import Component, { IComponent, keyUpdate, keyUpdateInside } from './model/Component';
 import ComponentComment from './model/ComponentComment';
 import ComponentFrame from './model/ComponentFrame';
@@ -80,7 +80,13 @@ import ComponentTextNode from './model/ComponentTextNode';
 import ComponentVideo from './model/ComponentVideo';
 import ComponentWrapper from './model/ComponentWrapper';
 import Components from './model/Components';
-import { ComponentAdd, ComponentDefinition, ComponentDefinitionDefined, ComponentStackItem } from './model/types';
+import {
+  AddComponentsOption,
+  ComponentAdd,
+  ComponentDefinition,
+  ComponentDefinitionDefined,
+  ComponentStackItem,
+} from './model/types';
 import ComponentCommentView from './view/ComponentCommentView';
 import ComponentFrameView from './view/ComponentFrameView';
 import ComponentImageView from './view/ComponentImageView';
@@ -110,6 +116,8 @@ import {
   isSymbolInstance,
   detachSymbolInstance,
   isSymbolRoot,
+  isSymbol as isSymbolComponent,
+  getSymbolTop,
 } from './model/SymbolUtils';
 import { ComponentsEvents, SymbolInfo } from './types';
 import Symbols from './model/Symbols';
@@ -117,6 +125,9 @@ import { BlockProperties } from '../block_manager/model/Block';
 import ComponentDataVariable from '../data_sources/model/ComponentDataVariable';
 import ComponentDataVariableView from '../data_sources/view/ComponentDataVariableView';
 import { DataVariableType } from '../data_sources/model/DataVariable';
+import { ConditionalVariableType } from '../data_sources/model/conditional_variables/DataCondition';
+import ComponentConditionalVariable from '../data_sources/model/conditional_variables/ConditionalComponent';
+import ConditionalComponentView from '../data_sources/view/ComponentDynamicView';
 
 export type ComponentEvent =
   | 'component:create'
@@ -182,6 +193,11 @@ export interface CanMoveResult {
 
 export default class ComponentManager extends ItemManagerModule<DomComponentsConfig, any> {
   componentTypes: ComponentStackItem[] = [
+    {
+      id: ConditionalVariableType,
+      model: ComponentConditionalVariable,
+      view: ConditionalComponentView,
+    },
     {
       id: DataVariableType,
       model: ComponentDataVariable,
@@ -326,18 +342,13 @@ export default class ComponentManager extends ItemManagerModule<DomComponentsCon
    * @private
    */
   constructor(em: EditorModel) {
-    super(em, 'DomComponents', new Components(undefined, { em }));
+    super(em, 'DomComponents', new Components(undefined, { em }), ComponentsEvents, defConfig());
     const { config } = this;
     this.symbols = new Symbols([], { em, config, domc: this });
 
     if (em) {
       //@ts-ignore
       this.config.components = em.config.components || this.config.components;
-    }
-
-    for (let name in defaults) {
-      //@ts-ignore
-      if (!(name in this.config)) this.config[name] = defaults[name];
     }
 
     const ppfx = this.config.pStylePrefix;
@@ -480,7 +491,7 @@ export default class ComponentManager extends ItemManagerModule<DomComponentsCon
    *   attributes: { title: 'here' }
    * });
    */
-  addComponent(component: ComponentAdd, opt: AddOptions = {}): Component | Component[] {
+  addComponent(component: ComponentAdd, opt: AddComponentsOption = {}): Component | Component[] {
     return this.getComponents().add(component, opt);
   }
 
@@ -514,7 +525,7 @@ export default class ComponentManager extends ItemManagerModule<DomComponentsCon
    * @return {this}
    * @private
    */
-  setComponents(components: ComponentAdd, opt: AddOptions = {}) {
+  setComponents(components: ComponentAdd, opt: AddComponentsOption = {}) {
     this.clear(opt).addComponent(components, opt);
   }
 
@@ -834,14 +845,25 @@ export default class ComponentManager extends ItemManagerModule<DomComponentsCon
       target,
       source: null,
     };
-
     if (!source || !target) return result;
+
+    // Check if the target and source belong to the same root symbol
+    if (isSymbolComponent(target) && source instanceof Component && isSymbolComponent(source)) {
+      const targetRootSymbol = getSymbolTop(target);
+      const targetMain = isSymbolMain(targetRootSymbol) ? targetRootSymbol : getSymbolMain(targetRootSymbol);
+      const sourceRootSymbol = getSymbolTop(source as Component);
+      const sourceMain = isSymbolMain(sourceRootSymbol) ? sourceRootSymbol : getSymbolMain(sourceRootSymbol);
+
+      const sameRoot = targetMain === sourceMain;
+      const differentInstance = targetRootSymbol !== sourceRootSymbol;
+      if (sameRoot && differentInstance) return { ...result, reason: CanMoveReason.TargetReject };
+    }
 
     let srcModel = isComponent(source) ? source : null;
 
     if (!srcModel) {
       const wrapper = this.getShallowWrapper();
-      srcModel = wrapper?.append(source)[0] || null;
+      srcModel = wrapper?.append(source, { temporary: true })[0] || null;
     }
 
     result.source = srcModel;

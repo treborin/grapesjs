@@ -428,11 +428,17 @@ export interface EditorConfig {
    */
   colorPicker?: ColorPickerOptions;
   pStylePrefix?: string;
+
+  /**
+   * Telemetry options
+   * Default: true
+   */
+  telemetry?: boolean;
 }
 
 export type EditorConfigKeys = keyof EditorConfig;
 
-const config: EditorConfig = {
+const config: () => EditorConfig = () => ({
   stylePrefix: 'gjs-',
   components: '',
   style: '',
@@ -506,6 +512,7 @@ const config: EditorConfig = {
   textViewCode: 'Code',
   keepUnusedStyles: false,
   customUI: false,
-};
+  telemetry: true,
+});
 
 export default config;

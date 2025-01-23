@@ -19,7 +19,8 @@ describe('DataSource Transformers', () => {
   });
 
   test('should assert that onRecordSetValue is called when adding a record', () => {
-    const testDataSource: DataSourceProps = {
+    type Record = { id: string; content: string };
+    const testDataSource: DataSourceProps<Record> = {
       id: 'test-data-source',
       records: [],
       transformers: {
@@ -58,7 +59,8 @@ describe('DataSource Transformers', () => {
   });
 
   test('should assert that onRecordSetValue is called when setting a value on a record', () => {
-    const testDataSource: DataSourceProps = {
+    type Record = { id: string; content: string };
+    const testDataSource: DataSourceProps<Record> = {
       id: 'test-data-source',
       records: [],
       transformers: {

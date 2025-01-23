@@ -35,7 +35,7 @@ import Component from '../dom_components/model/Component';
 import ComponentView from '../dom_components/view/ComponentView';
 import EditorModel from '../editor/model/Editor';
 import { getElement, getViewEl } from '../utils/mixins';
-import defaults, { CanvasConfig } from './config/config';
+import defConfig, { CanvasConfig } from './config/config';
 import Canvas from './model/Canvas';
 import CanvasSpot, { CanvasSpotBuiltInTypes, CanvasSpotProps } from './model/CanvasSpot';
 import CanvasSpots from './model/CanvasSpots';
@@ -43,6 +43,7 @@ import Frame from './model/Frame';
 import { CanvasEvents, CanvasRefreshOptions, ToWorldOption } from './types';
 import CanvasView, { FitViewportOptions } from './view/CanvasView';
 import FrameView from './view/FrameView';
+import { DragSource } from '../utils/sorter/types';
 
 export type CanvasEvent = `${CanvasEvents}`;
 
@@ -75,7 +76,7 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * @private
    */
   constructor(em: EditorModel) {
-    super(em, 'Canvas', defaults);
+    super(em, 'Canvas', defConfig());
 
     this.canvas = new Canvas(this);
     this.spots = new CanvasSpots(this);
@@ -498,7 +499,7 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * @return {Object}
    * @private
    */
-  getMouseRelativeCanvas(ev: MouseEvent, opts: any) {
+  getMouseRelativeCanvas(ev: MouseEvent | { clientX: number; clientY: number }, opts: any) {
     const zoom = this.getZoomDecimal();
     const { top = 0, left = 0 } = this.getCanvasView().getPosition(opts) ?? {};
 
@@ -506,6 +507,36 @@ export default class CanvasModule extends Module<CanvasConfig> {
       y: ev.clientY * zoom + top,
       x: ev.clientX * zoom + left,
     };
+  }
+
+  /**
+   * Start custom drag-and-drop process.
+   *
+   * @param {DragSource<Component>} dragSource - The source object for the drag operation, containing the component being dragged.
+   * @example
+   * // as component definition
+   * canvas.startDrag({
+   *  content: { type: 'my-component' }
+   * });
+   * // as HTML
+   * canvas.startDrag({
+   *  content: '<div>...</div>'
+   * });
+   */
+  startDrag(dragSource: DragSource<Component>) {
+    this.em.set('dragSource', dragSource);
+  }
+
+  /**
+   * Ends the drag-and-drop process, resetting the drag source and clearing any drag results.
+   * This method can be used to finalize custom drag-and-drop content operations.
+   * @example
+   * canvas.startDrag({...});
+   * // ... drag finished ...
+   * canvas.endDrag();
+   */
+  endDrag() {
+    this.em.set({ dragResult: null, dragSource: undefined });
   }
 
   /**
@@ -543,7 +574,7 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * const selected = editor.getSelected();
    * // Scroll smoothly (this behavior can be polyfilled)
    * canvas.scrollTo(selected, { behavior: 'smooth' });
-   * // Force the scroll, even if the element is alredy visible
+   * // Force the scroll, even if the element is already visible
    * canvas.scrollTo(selected, { force: true });
    */
   scrollTo(el: any, opts = {}) {

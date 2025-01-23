@@ -1,12 +1,24 @@
 import { ObjectAny } from '../common';
+import ComponentDataVariable from './model/ComponentDataVariable';
 import DataRecord from './model/DataRecord';
 import DataRecords from './model/DataRecords';
+import DataVariable, { DataVariableDefinition } from './model/DataVariable';
+import { ConditionalVariableDefinition, DataCondition } from './model/conditional_variables/DataCondition';
 
+export type DynamicValue = DataVariable | ComponentDataVariable | DataCondition;
+export type DynamicValueDefinition = DataVariableDefinition | ConditionalVariableDefinition;
 export interface DataRecordProps extends ObjectAny {
   /**
    * Record id.
    */
   id: string;
+
+  /**
+   * Specifies if the record is mutable. Defaults to `true`.
+   */
+  mutable?: boolean;
+
+  [key: string]: any;
 }
 
 export interface DataVariableListener {
@@ -14,24 +26,29 @@ export interface DataVariableListener {
   event: string;
 }
 
-export interface DataSourceProps {
+interface BaseDataSource {
   /**
    * DataSource id.
    */
   id: string;
 
   /**
-   * DataSource records.
-   */
-  records?: DataRecords | DataRecord[] | DataRecordProps[];
-
-  /**
    * DataSource validation and transformation factories.
    */
-
   transformers?: DataSourceTransformers;
-}
 
+  /**
+   * If true will store the data source in the GrapesJS project.json file.
+   */
+  skipFromStorage?: boolean;
+}
+export interface DataSourceType<DR extends DataRecordProps> extends BaseDataSource {
+  records: DataRecords<DR>;
+}
+export interface DataSourceProps<DR extends DataRecordProps> extends BaseDataSource {
+  records?: DataRecords<DR> | DataRecord<DR>[] | DR[];
+}
+export type RecordPropsType<T> = T extends DataRecord<infer U> ? U : never;
 export interface DataSourceTransformers {
   onRecordSetValue?: (args: { id: string | number; key: string; value: any }) => any;
 }
@@ -76,3 +93,24 @@ export enum DataSourcesEvents {
   all = 'data',
 }
 /**{END_EVENTS}*/
+type DotSeparatedKeys<T> = T extends object
+  ? {
+      [K in keyof T]: K extends string
+        ? T[K] extends object
+          ? `${K}` | `${K}.${DotSeparatedKeys<T[K]>}`
+          : `${K}`
+        : never;
+    }[keyof T]
+  : never;
+
+export type DeepPartialDot<T> = {
+  [P in DotSeparatedKeys<T>]?: P extends `${infer K}.${infer Rest}`
+    ? K extends keyof T
+      ? Rest extends DotSeparatedKeys<T[K]>
+        ? DeepPartialDot<T[K]>[Rest]
+        : never
+      : never
+    : P extends keyof T
+      ? T[P]
+      : never;
+};
