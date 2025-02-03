@@ -31,7 +31,7 @@
 
 import { AddOptions, collectionEvents, CombinedModelConstructorOptions, Model, RemoveOptions } from '../../common';
 import EditorModel from '../../editor/model/Editor';
-import { DataSourceTransformers, DataSourceType, DataSourceProps, RecordPropsType, DataRecordProps } from '../types';
+import { DataSourceTransformers, DataSourceType, DataSourceProps, DataRecordProps } from '../types';
 import DataRecord from './DataRecord';
 import DataRecords from './DataRecords';
 import DataSources from './DataSources';

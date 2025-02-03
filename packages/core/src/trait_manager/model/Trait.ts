@@ -1,4 +1,3 @@
-import { ConditionalVariableType, DataCondition } from './../../data_sources/model/conditional_variables/DataCondition';
 import { isString, isUndefined } from 'underscore';
 import Category from '../../abstract/ModuleCategory';
 import { LocaleOptions, Model, SetOptions } from '../../common';
@@ -8,8 +7,6 @@ import { isDef } from '../../utils/mixins';
 import TraitsEvents, { TraitGetValueOptions, TraitOption, TraitProperties, TraitSetValueOptions } from '../types';
 import TraitView from '../view/TraitView';
 import Traits from './Traits';
-import TraitDataVariable from '../../data_sources/model/TraitDataVariable';
-import DynamicVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
 
 /**
  * @property {String} id Trait id, eg. `my-trait-id`.
@@ -29,8 +26,6 @@ export default class Trait extends Model<TraitProperties> {
   em: EditorModel;
   view?: TraitView;
   el?: HTMLElement;
-  dynamicVariable?: TraitDataVariable | DataCondition;
-  dynamicVariableListener?: DynamicVariableListenerManager;
 
   defaults() {
     return {

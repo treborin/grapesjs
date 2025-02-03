@@ -1,12 +1,11 @@
 import { DataSourceManager, Editor } from '../../../../../src';
 import { DataVariableType } from '../../../../../src/data_sources/model/DataVariable';
 import {
-  ConditionalVariableType,
+  DataConditionType,
   MissingConditionError,
 } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { GenericOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/GenericOperator';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
-import { DataSourceProps } from '../../../../../src/data_sources/types';
 import ComponentWrapper from '../../../../../src/dom_components/model/ComponentWrapper';
 import EditorModel from '../../../../../src/editor/model/Editor';
 import { filterObjectForSnapshot, setupTestEditor } from '../../../../common';
@@ -32,7 +31,7 @@ describe('StyleConditionalVariable', () => {
       content: 'some text',
       style: {
         color: {
-          type: ConditionalVariableType,
+          type: DataConditionType,
           condition: {
             left: 0,
             operator: NumberOperation.greaterThan,
@@ -64,7 +63,7 @@ describe('StyleConditionalVariable', () => {
       content: 'some text',
       style: {
         color: {
-          type: ConditionalVariableType,
+          type: DataConditionType,
           condition: {
             left: {
               type: DataVariableType,
@@ -96,7 +95,7 @@ describe('StyleConditionalVariable', () => {
         content: 'some text',
         style: {
           color: {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             ifTrue: 'grey',
             ifFalse: 'red',
           },
@@ -112,7 +111,7 @@ describe('StyleConditionalVariable', () => {
       content: 'some text',
       style: {
         color: {
-          type: ConditionalVariableType,
+          type: DataConditionType,
           condition: {
             left: 0,
             operator: NumberOperation.greaterThan,

@@ -1,50 +1,68 @@
 import EditorModel from '../../editor/model/Editor';
-import { DynamicValue, DynamicValueDefinition } from '../types';
-import { ConditionalVariableType, DataCondition } from './conditional_variables/DataCondition';
-import DataVariable, { DataVariableType } from './DataVariable';
+import { DataResolver, DataResolverProps } from '../types';
+import { DataCollectionStateMap } from './data_collection/types';
+import DataCollectionVariable from './data_collection/DataCollectionVariable';
+import { DataCollectionVariableType } from './data_collection/constants';
+import { DataConditionType, DataCondition } from './conditional_variables/DataCondition';
+import DataVariable, { DataVariableProps, DataVariableType } from './DataVariable';
 
-export function isDynamicValueDefinition(value: any): value is DynamicValueDefinition {
-  return typeof value === 'object' && [DataVariableType, ConditionalVariableType].includes(value?.type);
+export function isDataResolverProps(value: any): value is DataResolverProps {
+  return (
+    typeof value === 'object' && [DataVariableType, DataConditionType, DataCollectionVariableType].includes(value?.type)
+  );
 }
 
-export function isDynamicValue(value: any): value is DynamicValue {
+export function isDataResolver(value: any): value is DataResolver {
   return value instanceof DataVariable || value instanceof DataCondition;
 }
 
-export function isDataVariable(variable: any) {
+export function isDataVariable(variable: any): variable is DataVariableProps {
   return variable?.type === DataVariableType;
 }
 
 export function isDataCondition(variable: any) {
-  return variable?.type === ConditionalVariableType;
+  return variable?.type === DataConditionType;
 }
 
 export function evaluateVariable(variable: any, em: EditorModel) {
   return isDataVariable(variable) ? new DataVariable(variable, { em }).getDataValue() : variable;
 }
 
-export function getDynamicValueInstance(valueDefinition: DynamicValueDefinition, em: EditorModel): DynamicValue {
-  const dynamicType = valueDefinition.type;
-  let dynamicVariable: DynamicValue;
+export function getDataResolverInstance(
+  resolverProps: DataResolverProps,
+  options: { em: EditorModel; collectionsStateMap?: DataCollectionStateMap },
+): DataResolver {
+  const { type } = resolverProps;
+  let resolver: DataResolver;
 
-  switch (dynamicType) {
+  switch (type) {
     case DataVariableType:
-      dynamicVariable = new DataVariable(valueDefinition, { em: em });
+      resolver = new DataVariable(resolverProps, options);
       break;
-    case ConditionalVariableType: {
-      const { condition, ifTrue, ifFalse } = valueDefinition;
-      dynamicVariable = new DataCondition(condition, ifTrue, ifFalse, { em: em });
+    case DataConditionType: {
+      const { condition, ifTrue, ifFalse } = resolverProps;
+      resolver = new DataCondition(condition, ifTrue, ifFalse, options);
+      break;
+    }
+    case DataCollectionVariableType: {
+      resolver = new DataCollectionVariable(resolverProps, options);
       break;
     }
     default:
-      throw new Error(`Unsupported dynamic type: ${dynamicType}`);
+      throw new Error(`Unsupported dynamic type: ${type}`);
   }
 
-  return dynamicVariable;
+  return resolver;
 }
 
-export function evaluateDynamicValueDefinition(valueDefinition: DynamicValueDefinition, em: EditorModel) {
-  const dynamicVariable = getDynamicValueInstance(valueDefinition, em);
+export function getDataResolverInstanceValue(
+  resolverProps: DataResolverProps,
+  options: {
+    em: EditorModel;
+    collectionsStateMap?: DataCollectionStateMap;
+  },
+) {
+  const resolver = getDataResolverInstance(resolverProps, options);
 
-  return { variable: dynamicVariable, value: dynamicVariable.getDataValue() };
+  return { resolver, value: resolver.getDataValue() };
 }

@@ -53,7 +53,7 @@
  *
  * @module Components
  */
-import { debounce, isArray, isBoolean, isEmpty, isFunction, isString, isSymbol, result } from 'underscore';
+import { debounce, isArray, isEmpty, isFunction, isString, isSymbol, result } from 'underscore';
 import { ItemManagerModule } from '../abstract/Module';
 import { ObjectAny } from '../common';
 import EditorModel from '../editor/model/Editor';
@@ -125,9 +125,14 @@ import { BlockProperties } from '../block_manager/model/Block';
 import ComponentDataVariable from '../data_sources/model/ComponentDataVariable';
 import ComponentDataVariableView from '../data_sources/view/ComponentDataVariableView';
 import { DataVariableType } from '../data_sources/model/DataVariable';
-import { ConditionalVariableType } from '../data_sources/model/conditional_variables/DataCondition';
-import ComponentConditionalVariable from '../data_sources/model/conditional_variables/ConditionalComponent';
-import ConditionalComponentView from '../data_sources/view/ComponentDynamicView';
+import { DataConditionType } from '../data_sources/model/conditional_variables/DataCondition';
+import ComponentDataCondition from '../data_sources/model/conditional_variables/ComponentDataCondition';
+import ComponentDataConditionView from '../data_sources/view/ComponentDataConditionView';
+import ComponentDataCollection from '../data_sources/model/data_collection/ComponentDataCollection';
+import { DataCollectionType, DataCollectionVariableType } from '../data_sources/model/data_collection/constants';
+import ComponentDataCollectionVariable from '../data_sources/model/data_collection/ComponentDataCollectionVariable';
+import ComponentDataCollectionVariableView from '../data_sources/view/ComponentDataCollectionVariableView';
+import ComponentDataCollectionView from '../data_sources/view/ComponentDataCollectionView';
 
 export type ComponentEvent =
   | 'component:create'
@@ -194,9 +199,19 @@ export interface CanMoveResult {
 export default class ComponentManager extends ItemManagerModule<DomComponentsConfig, any> {
   componentTypes: ComponentStackItem[] = [
     {
-      id: ConditionalVariableType,
-      model: ComponentConditionalVariable,
-      view: ConditionalComponentView,
+      id: DataCollectionVariableType,
+      model: ComponentDataCollectionVariable,
+      view: ComponentDataCollectionVariableView,
+    },
+    {
+      id: DataCollectionType,
+      model: ComponentDataCollection,
+      view: ComponentDataCollectionView,
+    },
+    {
+      id: DataConditionType,
+      model: ComponentDataCondition,
+      view: ComponentDataConditionView,
     },
     {
       id: DataVariableType,

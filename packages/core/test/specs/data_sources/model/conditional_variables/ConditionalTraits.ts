@@ -1,5 +1,5 @@
 import { DataSourceManager, Editor } from '../../../../../src';
-import { ConditionalVariableType } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
+import { DataConditionType } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
 import ComponentWrapper from '../../../../../src/dom_components/model/ComponentWrapper';
 import EditorModel from '../../../../../src/editor/model/Editor';
@@ -34,7 +34,7 @@ describe('conditional traits', () => {
           label: 'Value',
           name: 'value',
           value: {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             condition: {
               left: 0,
               operator: NumberOperation.greaterThan,
@@ -68,7 +68,7 @@ describe('conditional traits', () => {
           name: 'value',
           changeProp: true,
           value: {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             condition: {
               left: 0,
               operator: NumberOperation.greaterThan,
@@ -103,7 +103,7 @@ describe('conditional traits', () => {
           name: 'value',
           changeProp: true,
           value: {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             condition: {
               left: 0,
               operator: NumberOperation.greaterThan,
@@ -138,7 +138,7 @@ describe('conditional traits', () => {
           name: 'value',
           changeProp: true,
           value: {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             condition: {
               left: 0,
               operator: NumberOperation.greaterThan,

@@ -1,15 +1,14 @@
 import { DataSourceManager } from '../../../../../src';
 import {
   DataCondition,
-  ExpressionDefinition,
-  LogicGroupDefinition,
+  ExpressionProps,
+  LogicGroupProps,
 } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { GenericOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/GenericOperator';
 import { LogicalOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/LogicalOperator';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
 import { StringOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/StringOperations';
 import { DataVariableType } from '../../../../../src/data_sources/model/DataVariable';
-import { DataSourceProps } from '../../../../../src/data_sources/types';
 import Editor from '../../../../../src/editor/model/Editor';
 import EditorModel from '../../../../../src/editor/model/Editor';
 
@@ -52,14 +51,14 @@ describe('DataCondition', () => {
 
   describe('Operator Tests', () => {
     test('should evaluate using GenericOperation operators', () => {
-      const condition: ExpressionDefinition = { left: 5, operator: GenericOperation.equals, right: 5 };
+      const condition: ExpressionProps = { left: 5, operator: GenericOperation.equals, right: 5 };
       const dataCondition = new DataCondition(condition, 'Equal', 'Not Equal', { em });
 
       expect(dataCondition.getDataValue()).toBe('Equal');
     });
 
     test('equals (false)', () => {
-      const condition: ExpressionDefinition = {
+      const condition: ExpressionProps = {
         left: 'hello',
         operator: GenericOperation.equals,
         right: 'world',
@@ -69,21 +68,21 @@ describe('DataCondition', () => {
     });
 
     test('should evaluate using StringOperation operators', () => {
-      const condition: ExpressionDefinition = { left: 'apple', operator: StringOperation.contains, right: 'app' };
+      const condition: ExpressionProps = { left: 'apple', operator: StringOperation.contains, right: 'app' };
       const dataCondition = new DataCondition(condition, 'Contains', "Doesn't contain", { em });
 
       expect(dataCondition.getDataValue()).toBe('Contains');
     });
 
     test('should evaluate using NumberOperation operators', () => {
-      const condition: ExpressionDefinition = { left: 10, operator: NumberOperation.lessThan, right: 15 };
+      const condition: ExpressionProps = { left: 10, operator: NumberOperation.lessThan, right: 15 };
       const dataCondition = new DataCondition(condition, 'Valid', 'Invalid', { em });
 
       expect(dataCondition.getDataValue()).toBe('Valid');
     });
 
     test('should evaluate using LogicalOperation operators', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.and,
         statements: [
           { left: true, operator: GenericOperation.equals, right: true },
@@ -103,7 +102,7 @@ describe('DataCondition', () => {
     });
 
     test('should evaluate complex nested conditions', () => {
-      const nestedLogicGroup: LogicGroupDefinition = {
+      const nestedLogicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.or,
         statements: [
           {
@@ -124,7 +123,7 @@ describe('DataCondition', () => {
 
   describe('LogicalGroup Tests', () => {
     test('should correctly handle AND logical operator', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.and,
         statements: [
           { left: true, operator: GenericOperation.equals, right: true },
@@ -137,7 +136,7 @@ describe('DataCondition', () => {
     });
 
     test('should correctly handle OR logical operator', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.or,
         statements: [
           { left: true, operator: GenericOperation.equals, right: false },
@@ -150,7 +149,7 @@ describe('DataCondition', () => {
     });
 
     test('should correctly handle XOR logical operator', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.xor,
         statements: [
           { left: true, operator: GenericOperation.equals, right: true },
@@ -164,7 +163,7 @@ describe('DataCondition', () => {
     });
 
     test('should handle nested logical groups', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.and,
         statements: [
           { left: true, operator: GenericOperation.equals, right: true },
@@ -183,7 +182,7 @@ describe('DataCondition', () => {
     });
 
     test('should handle groups with false conditions', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.and,
         statements: [
           { left: true, operator: GenericOperation.equals, right: true },
@@ -199,7 +198,7 @@ describe('DataCondition', () => {
 
   describe('Conditions with dataVariables', () => {
     test('should return "Yes" when dataVariable matches expected value', () => {
-      const condition: ExpressionDefinition = {
+      const condition: ExpressionProps = {
         left: { type: DataVariableType, path: 'USER_STATUS_SOURCE.USER_1.status' },
         operator: GenericOperation.equals,
         right: 'active',
@@ -210,7 +209,7 @@ describe('DataCondition', () => {
     });
 
     test('should return "No" when dataVariable does not match expected value', () => {
-      const condition: ExpressionDefinition = {
+      const condition: ExpressionProps = {
         left: { type: DataVariableType, path: 'USER_STATUS_SOURCE.USER_1.status' },
         operator: GenericOperation.equals,
         right: 'inactive',
@@ -222,7 +221,7 @@ describe('DataCondition', () => {
 
     // TODO: unskip after adding UndefinedOperator
     test.skip('should handle missing data variable gracefully', () => {
-      const condition: ExpressionDefinition = {
+      const condition: ExpressionProps = {
         left: { type: DataVariableType, path: 'USER_STATUS_SOURCE.not_a_user.status' },
         operator: GenericOperation.isDefined,
         right: undefined,
@@ -233,7 +232,7 @@ describe('DataCondition', () => {
     });
 
     test('should correctly compare numeric values from dataVariables', () => {
-      const condition: ExpressionDefinition = {
+      const condition: ExpressionProps = {
         left: { type: DataVariableType, path: 'USER_STATUS_SOURCE.USER_1.age' },
         operator: NumberOperation.greaterThan,
         right: 24,
@@ -249,7 +248,7 @@ describe('DataCondition', () => {
       };
       dsm.add(dataSource2);
 
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.and,
         statements: [
           {
@@ -270,7 +269,7 @@ describe('DataCondition', () => {
     });
 
     test('should handle nested logical conditions with data variables', () => {
-      const logicGroup: LogicGroupDefinition = {
+      const logicGroup: LogicGroupProps = {
         logicalOperator: LogicalOperation.or,
         statements: [
           {

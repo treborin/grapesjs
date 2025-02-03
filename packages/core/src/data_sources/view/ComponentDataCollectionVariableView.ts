@@ -1,22 +1,17 @@
 import ComponentView from '../../dom_components/view/ComponentView';
-import ComponentDataVariable from '../model/ComponentDataVariable';
 import DataResolverListener from '../model/DataResolverListener';
+import ComponentDataCollectionVariable from '../model/data_collection/ComponentDataCollectionVariable';
 
-export default class ComponentDataVariableView extends ComponentView<ComponentDataVariable> {
-  dataResolverListener!: DataResolverListener;
+export default class ComponentDataCollectionVariableView extends ComponentView<ComponentDataCollectionVariable> {
+  dataResolverListener?: DataResolverListener;
 
   initialize(opt = {}) {
     super.initialize(opt);
     this.dataResolverListener = new DataResolverListener({
-      em: this.em,
+      em: this.em!,
       resolver: this.model.dataResolver,
-      onUpdate: () => this.postRender(),
+      onUpdate: this.postRender.bind(this),
     });
-  }
-
-  remove() {
-    this.dataResolverListener.destroy();
-    return super.remove();
   }
 
   postRender() {

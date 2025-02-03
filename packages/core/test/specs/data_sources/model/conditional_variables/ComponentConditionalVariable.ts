@@ -1,11 +1,12 @@
 import { Component, DataSourceManager, Editor } from '../../../../../src';
 import { DataVariableType } from '../../../../../src/data_sources/model/DataVariable';
-import { MissingConditionError } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
-import { ConditionalVariableType } from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
+import {
+  MissingConditionError,
+  DataConditionType,
+} from '../../../../../src/data_sources/model/conditional_variables/DataCondition';
 import { GenericOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/GenericOperator';
 import { NumberOperation } from '../../../../../src/data_sources/model/conditional_variables/operators/NumberOperator';
-import { DataSourceProps } from '../../../../../src/data_sources/types';
-import ConditionalComponentView from '../../../../../src/data_sources/view/ComponentDynamicView';
+import ComponentDataConditionView from '../../../../../src/data_sources/view/ComponentDataConditionView';
 import ComponentWrapper from '../../../../../src/dom_components/model/ComponentWrapper';
 import ComponentTableView from '../../../../../src/dom_components/view/ComponentTableView';
 import ComponentTextView from '../../../../../src/dom_components/view/ComponentTextView';
@@ -28,7 +29,7 @@ describe('ComponentConditionalVariable', () => {
 
   it('should add a component with a condition that evaluates a component definition', () => {
     const component = cmpRoot.append({
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: {
         left: 0,
         operator: NumberOperation.greaterThan,
@@ -41,10 +42,10 @@ describe('ComponentConditionalVariable', () => {
       },
     })[0];
     expect(component).toBeDefined();
-    expect(component.get('type')).toBe(ConditionalVariableType);
+    expect(component.get('type')).toBe(DataConditionType);
     expect(component.getInnerHTML()).toBe('<h1>some text</h1>');
     const componentView = component.getView();
-    expect(componentView).toBeInstanceOf(ConditionalComponentView);
+    expect(componentView).toBeInstanceOf(ComponentDataConditionView);
     expect(componentView?.el.textContent).toBe('some text');
 
     const childComponent = getFirstChild(component);
@@ -58,7 +59,7 @@ describe('ComponentConditionalVariable', () => {
 
   it('should add a component with a condition that evaluates a string', () => {
     const component = cmpRoot.append({
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: {
         left: 0,
         operator: NumberOperation.greaterThan,
@@ -67,10 +68,10 @@ describe('ComponentConditionalVariable', () => {
       ifTrue: '<h1>some text</h1>',
     })[0];
     expect(component).toBeDefined();
-    expect(component.get('type')).toBe(ConditionalVariableType);
+    expect(component.get('type')).toBe(DataConditionType);
     expect(component.getInnerHTML()).toBe('<h1>some text</h1>');
     const componentView = component.getView();
-    expect(componentView).toBeInstanceOf(ConditionalComponentView);
+    expect(componentView).toBeInstanceOf(ComponentDataConditionView);
     expect(componentView?.el.textContent).toBe('some text');
 
     const childComponent = getFirstChild(component);
@@ -93,7 +94,7 @@ describe('ComponentConditionalVariable', () => {
     dsm.add(dataSource);
 
     const component = cmpRoot.append({
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: {
         left: {
           type: DataVariableType,
@@ -142,7 +143,7 @@ describe('ComponentConditionalVariable', () => {
     dsm.add(dataSource);
 
     const component = cmpRoot.append({
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: {
         left: {
           type: DataVariableType,
@@ -158,7 +159,7 @@ describe('ComponentConditionalVariable', () => {
         tagName: 'div',
         components: [
           {
-            type: ConditionalVariableType,
+            type: DataConditionType,
             condition: {
               left: {
                 type: DataVariableType,
@@ -189,7 +190,7 @@ describe('ComponentConditionalVariable', () => {
 
   it('should store conditional components', () => {
     const conditionalCmptDef = {
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: {
         left: 0,
         operator: NumberOperation.greaterThan,
@@ -215,7 +216,7 @@ describe('ComponentConditionalVariable', () => {
 
   it('should throw an error if no condition is passed', () => {
     const conditionalCmptDef = {
-      type: ConditionalVariableType,
+      type: DataConditionType,
       ifTrue: {
         tagName: 'h1',
         type: 'text',

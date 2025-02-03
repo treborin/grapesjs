@@ -46,7 +46,7 @@ export class GenericOperator extends Operator {
       case 'isBoolean':
         return typeof left === 'boolean';
       case 'isDefaultValue':
-        return left instanceof DataVariable && left.get('default') === right;
+        return left instanceof DataVariable && left.get('defaultValue') === right;
       default:
         throw new Error(`Unsupported generic operator: ${this.operator}`);
     }

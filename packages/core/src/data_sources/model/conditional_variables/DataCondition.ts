@@ -1,49 +1,46 @@
+import { Model } from '../../../common';
+import EditorModel from '../../../editor/model/Editor';
+import DataVariable, { DataVariableProps } from '../DataVariable';
+import DataResolverListener from '../DataResolverListener';
+import { evaluateVariable, isDataVariable } from '../utils';
+import { Condition, ConditionProps } from './Condition';
+import { GenericOperation } from './operators/GenericOperator';
+import { LogicalOperation } from './operators/LogicalOperator';
 import { NumberOperation } from './operators/NumberOperator';
 import { StringOperation } from './operators/StringOperations';
-import { GenericOperation } from './operators/GenericOperator';
-import { Model } from '../../../common';
-import { LogicalOperation } from './operators/LogicalOperator';
-import DynamicVariableListenerManager from '../DataVariableListenerManager';
-import EditorModel from '../../../editor/model/Editor';
-import { Condition } from './Condition';
-import DataVariable, { DataVariableDefinition } from '../DataVariable';
-import { evaluateVariable, isDataVariable } from '../utils';
 
-export const ConditionalVariableType = 'conditional-variable';
-export type ExpressionDefinition = {
+export const DataConditionType = 'data-condition';
+
+export interface ExpressionProps {
   left: any;
   operator: GenericOperation | StringOperation | NumberOperation;
   right: any;
-};
+}
 
-export type LogicGroupDefinition = {
+export interface LogicGroupProps {
   logicalOperator: LogicalOperation;
-  statements: (ExpressionDefinition | LogicGroupDefinition | boolean)[];
-};
+  statements: ConditionProps[];
+}
 
-export type ConditionDefinition = ExpressionDefinition | LogicGroupDefinition | boolean;
-export type ConditionalVariableDefinition = {
-  type: typeof ConditionalVariableType;
-  condition: ConditionDefinition;
+export interface DataConditionProps {
+  type: typeof DataConditionType;
+  condition: ConditionProps;
   ifTrue: any;
   ifFalse: any;
-};
+}
 
-type DataConditionType = {
-  type: typeof ConditionalVariableType;
+interface DataConditionPropsDefined extends Omit<DataConditionProps, 'condition'> {
   condition: Condition;
-  ifTrue: any;
-  ifFalse: any;
-};
-export class DataCondition extends Model<DataConditionType> {
+}
+
+export class DataCondition extends Model<DataConditionPropsDefined> {
   lastEvaluationResult: boolean;
-  private condition: Condition;
   private em: EditorModel;
-  private variableListeners: DynamicVariableListenerManager[] = [];
+  private resolverListeners: DataResolverListener[] = [];
   private _onValueChange?: () => void;
 
   constructor(
-    condition: ExpressionDefinition | LogicGroupDefinition | boolean,
+    condition: ConditionProps,
     public ifTrue: any,
     public ifFalse: any,
     opts: { em: EditorModel; onValueChange?: () => void },
@@ -54,16 +51,19 @@ export class DataCondition extends Model<DataConditionType> {
 
     const conditionInstance = new Condition(condition, { em: opts.em });
     super({
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: conditionInstance,
       ifTrue,
       ifFalse,
     });
-    this.condition = conditionInstance;
     this.em = opts.em;
     this.lastEvaluationResult = this.evaluate();
     this.listenToDataVariables();
     this._onValueChange = opts.onValueChange;
+  }
+
+  get condition() {
+    return this.get('condition')!;
   }
 
   evaluate() {
@@ -84,7 +84,8 @@ export class DataCondition extends Model<DataConditionType> {
   }
 
   private listenToDataVariables() {
-    if (!this.em) return;
+    const { em } = this;
+    if (!em) return;
 
     // Clear previous listeners to avoid memory leaks
     this.cleanupListeners();
@@ -92,22 +93,21 @@ export class DataCondition extends Model<DataConditionType> {
     const dataVariables = this.getDependentDataVariables();
 
     dataVariables.forEach((variable) => {
-      const variableInstance = new DataVariable(variable, { em: this.em });
-      const listener = new DynamicVariableListenerManager({
-        em: this.em!,
-        dataVariable: variableInstance,
-        updateValueFromDataVariable: (() => {
+      const listener = new DataResolverListener({
+        em,
+        resolver: new DataVariable(variable, { em: this.em }),
+        onUpdate: (() => {
           this.reevaluate();
           this._onValueChange?.();
         }).bind(this),
       });
 
-      this.variableListeners.push(listener);
+      this.resolverListeners.push(listener);
     });
   }
 
   getDependentDataVariables() {
-    const dataVariables: DataVariableDefinition[] = this.condition.getDataVariables();
+    const dataVariables: DataVariableProps[] = this.condition.getDataVariables();
     if (isDataVariable(this.ifTrue)) dataVariables.push(this.ifTrue);
     if (isDataVariable(this.ifFalse)) dataVariables.push(this.ifFalse);
 
@@ -115,13 +115,13 @@ export class DataCondition extends Model<DataConditionType> {
   }
 
   private cleanupListeners() {
-    this.variableListeners.forEach((listener) => listener.destroy());
-    this.variableListeners = [];
+    this.resolverListeners.forEach((listener) => listener.destroy());
+    this.resolverListeners = [];
   }
 
   toJSON() {
     return {
-      type: ConditionalVariableType,
+      type: DataConditionType,
       condition: this.condition,
       ifTrue: this.ifTrue,
       ifFalse: this.ifFalse,

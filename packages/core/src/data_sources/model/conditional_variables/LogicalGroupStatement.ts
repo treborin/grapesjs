@@ -1,14 +1,13 @@
-import { LogicalOperator } from './operators/LogicalOperator';
-import { ExpressionDefinition, LogicGroupDefinition } from './DataCondition';
-import { Condition } from './Condition';
 import EditorModel from '../../../editor/model/Editor';
+import { Condition, ConditionProps } from './Condition';
+import { LogicalOperator } from './operators/LogicalOperator';
 
 export class LogicalGroupStatement {
   private em: EditorModel;
 
   constructor(
     private operator: LogicalOperator,
-    private statements: (ExpressionDefinition | LogicGroupDefinition | boolean)[],
+    private statements: ConditionProps[],
     opts: { em: EditorModel },
   ) {
     this.em = opts.em;
