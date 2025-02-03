@@ -354,7 +354,7 @@ export default class Property<T extends Record<string, any> = PropertyProps> ext
   }
 
   __getClearProps() {
-    return { value: '' } as unknown as Partial<T>;
+    return { value: '', important: false } as unknown as Partial<T>;
   }
 
   /**
@@ -492,7 +492,7 @@ export default class Property<T extends Record<string, any> = PropertyProps> ext
     const fn = this.get('functionName');
     const def = this.getDefaultValue();
     let value = isUndefined(val) ? (this.get('value') as string) : val;
-    const hasValue = !isUndefined(value) && value !== '';
+    const hasValue = this.hasValue();
 
     if (value && def && value === def) {
       return def;
