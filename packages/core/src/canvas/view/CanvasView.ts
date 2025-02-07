@@ -358,11 +358,12 @@ export default class CanvasView extends ModuleView<Canvas> {
   }
 
   getRectToScreen(boxRect: Partial<BoxRect>): BoxRect {
+    const canvasScroll = this.getCanvasScroll();
     const zoom = this.module.getZoomDecimal();
     const coords = this.module.getCoords();
     const vwDelta = this.getViewportDelta();
-    const x = (boxRect.x ?? 0) * zoom + coords.x + vwDelta.x || 0;
-    const y = (boxRect.y ?? 0) * zoom + coords.y + vwDelta.y || 0;
+    const x = (boxRect.x ?? 0) * zoom - canvasScroll.scrollLeft + coords.x + vwDelta.x || 0;
+    const y = (boxRect.y ?? 0) * zoom - canvasScroll.scrollTop + coords.y + vwDelta.y || 0;
 
     return {
       x,
@@ -461,6 +462,7 @@ export default class CanvasView extends ModuleView<Canvas> {
       const frEl = winEl ? (winEl.frameElement as HTMLElement) : frame;
       this.frmOff = this.offset(frEl || frame);
     }
+
     return this.frmOff;
   }
 
@@ -560,6 +562,23 @@ export default class CanvasView extends ModuleView<Canvas> {
       width: co.width,
       height: co.height,
     };
+  }
+
+  /**
+   * Returns the scroll position of the canvas.
+   *
+   * If the canvas is scrollable, returns the current `scrollTop` and `scrollLeft` values.
+   * Otherwise, returns an object with `scrollTop` and `scrollLeft` both set to 0.
+   *
+   * @returns An object containing the vertical and horizontal scroll positions.
+   */
+  getCanvasScroll(): { scrollTop: number; scrollLeft: number } {
+    return this.config.scrollableCanvas
+      ? {
+          scrollTop: this.el.scrollTop,
+          scrollLeft: this.el.scrollLeft,
+        }
+      : { scrollTop: 0, scrollLeft: 0 };
   }
 
   /**
@@ -671,7 +690,10 @@ export default class CanvasView extends ModuleView<Canvas> {
     this.toolsGlobEl = el.querySelector(`.${ppfx}tools-gl`)!;
     this.spotsEl = el.querySelector('[data-spots]')!;
     this.cvStyle = el.querySelector('[data-canvas-style]')!;
-    this.el.className = getUiClass(em, this.className);
+    el.className = getUiClass(em, this.className);
+    if (config.scrollableCanvas === true) {
+      el.style.overflow = 'auto';
+    }
     this.ready = true;
     this._renderFrames();
 

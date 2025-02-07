@@ -418,25 +418,36 @@ export default class CanvasModule extends Module<CanvasConfig> {
     const canvasOffset = opts.canvasOff || this.canvasRectOffset(el, elRect);
     const targetHeight = targetEl.offsetHeight || 0;
     const targetWidth = targetEl.offsetWidth || 0;
-    const elRight = elRect.left + elRect.width;
+    const elementRight = elRect.left + elRect.width;
     const canvasView = this.getCanvasView();
+    const { scrollTop: canvasScrollTop, scrollLeft: canvasScrollLeft } = canvasView.getCanvasScroll();
     const canvasRect = canvasView.getPosition();
     const frameOffset = canvasView.getFrameOffset(el);
     const { event } = opts;
 
-    let top = -targetHeight;
-    let left = !isUndefined(opts.left) ? opts.left : elRect.width - targetWidth;
-    left = elRect.left < -left ? -elRect.left : left;
-    left = elRight > canvasRect.width ? left - (elRight - canvasRect.width) : left;
+    const defaultLeftOffset = elRect.width - targetWidth;
+    const defaultTopOffset = -targetHeight;
 
-    // Check when the target top edge reaches the top of the viewable canvas
-    if (canvasOffset.top < targetHeight) {
+    let left = !isUndefined(opts.left) ? opts.left : defaultLeftOffset;
+    const canvasLiftLimit = Math.max(-elRect.left + canvasScrollLeft, 0);
+    left = Math.max(left, canvasLiftLimit);
+
+    const elementRightLimit = elementRight - targetWidth;
+    left = Math.min(left, elementRightLimit);
+
+    const canvasRightLimit = canvasRect.width + canvasScrollLeft - targetWidth - elRect.left;
+    left = Math.min(left, canvasRightLimit);
+
+    const targetReachesCanvasTop = canvasOffset.top < targetHeight + canvasScrollTop;
+    let top = defaultTopOffset;
+
+    if (targetReachesCanvasTop) {
       const fullHeight = elRect.height + targetHeight;
-      const elIsShort = fullHeight < frameOffset.height;
+      const elementIsShorterThanFrame = fullHeight < frameOffset.height;
 
       // Scroll with the window if the top edge is reached and the
       // element is bigger than the canvas
-      if (elIsShort) {
+      if (elementIsShorterThanFrame) {
         top = top + fullHeight;
       } else {
         top = -canvasOffset.top < elRect.height ? -canvasOffset.top : elRect.height;
@@ -501,7 +512,13 @@ export default class CanvasModule extends Module<CanvasConfig> {
    */
   getMouseRelativeCanvas(ev: MouseEvent | { clientX: number; clientY: number }, opts: any) {
     const zoom = this.getZoomDecimal();
-    const { top = 0, left = 0 } = this.getCanvasView().getPosition(opts) ?? {};
+    const canvasView = this.getCanvasView();
+    const canvasPos = canvasView.getPosition(opts) ?? { top: 0, left: 0 };
+    const canvasScroll = canvasView.getCanvasScroll();
+    const { top, left } = {
+      top: canvasPos.top + canvasScroll.scrollTop,
+      left: canvasPos.left + canvasScroll.scrollLeft,
+    };
 
     return {
       y: ev.clientY * zoom + top,
