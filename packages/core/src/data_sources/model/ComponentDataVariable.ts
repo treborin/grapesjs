@@ -1,9 +1,11 @@
 import Component from '../../dom_components/model/Component';
-import { ToHTMLOptions } from '../../dom_components/model/types';
+import { ComponentOptions } from '../../dom_components/model/types';
 import { toLowerCase } from '../../utils/mixins';
-import { DataVariableType } from './DataVariable';
+import DataVariable, { DataVariableProps, DataVariableType } from './DataVariable';
 
 export default class ComponentDataVariable extends Component {
+  dataResolver: DataVariable;
+
   get defaults() {
     return {
       // @ts-ignore
@@ -14,15 +16,18 @@ export default class ComponentDataVariable extends Component {
     };
   }
 
-  getDataValue() {
-    const { path, defaultValue } = this.attributes;
-    return this.em.DataSources.getValue(path, defaultValue);
+  constructor(props: DataVariableProps, opt: ComponentOptions) {
+    super(props, opt);
+    const { type, path, defaultValue } = props;
+    this.dataResolver = new DataVariable({ type, path, defaultValue }, opt);
   }
 
-  getInnerHTML(opts: ToHTMLOptions) {
-    const val = this.getDataValue();
+  getDataValue() {
+    return this.dataResolver.getDataValue();
+  }
 
-    return val;
+  getInnerHTML() {
+    return this.getDataValue();
   }
 
   static isComponent(el: HTMLElement) {

@@ -676,11 +676,13 @@ export default class Resizer {
     const parentH = this.parentDim!.h;
     const unitWidth = this.opts.unitWidth;
     const unitHeight = this.opts.unitHeight;
+    const parentRect = this.getParentRect();
     const startW = unitWidth === '%' ? (startDim.w / 100) * parentW : startDim.w;
     const startH = unitHeight === '%' ? (startDim.h / 100) * parentH : startDim.h;
+
     const box: RectDim = {
-      t: startDim.t,
-      l: startDim.l,
+      t: startDim.t - parentRect.top,
+      l: startDim.l - parentRect.left,
       w: startW,
       h: startH,
     };
@@ -749,5 +751,21 @@ export default class Resizer {
     }
 
     return box;
+  }
+
+  getParentRect(): BoundingRect {
+    let parentRect = { left: 0, top: 0, width: 0, height: 0 };
+    const { el } = this;
+
+    if (!el) return parentRect;
+
+    const { offsetParent } = el;
+
+    // Check if the parent or any ancestor has `position: relative`, `absolute`, `fixed`, or `sticky`
+    if (offsetParent && offsetParent.tagName !== 'BODY') {
+      parentRect = this.getElementPos(offsetParent as HTMLElement);
+    }
+
+    return parentRect;
   }
 }

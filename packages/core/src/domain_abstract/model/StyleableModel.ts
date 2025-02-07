@@ -4,27 +4,29 @@ import ParserHtml from '../../parser/model/ParserHtml';
 import Selectors from '../../selector_manager/model/Selectors';
 import { shallowDiff } from '../../utils/mixins';
 import EditorModel from '../../editor/model/Editor';
-import StyleDataVariable from '../../data_sources/model/StyleDataVariable';
-import { DataVariableType } from '../../data_sources/model/DataVariable';
-import DataVariableListenerManager from '../../data_sources/model/DataVariableListenerManager';
+import DataVariable, { DataVariableProps, DataVariableType } from '../../data_sources/model/DataVariable';
+import DataResolverListener from '../../data_sources/model/DataResolverListener';
+import CssRuleView from '../../css_composer/view/CssRuleView';
+import ComponentView from '../../dom_components/view/ComponentView';
+import Frame from '../../canvas/model/Frame';
+import {
+  DataCondition,
+  DataConditionType,
+  DataConditionProps,
+} from '../../data_sources/model/conditional_variables/DataCondition';
+import { isDataResolver, isDataResolverProps } from '../../data_sources/model/utils';
+import { DataResolverProps } from '../../data_sources/types';
 
-export type StyleProps = Record<
-  string,
-  | string
-  | string[]
-  | {
-      type: typeof DataVariableType;
-      defaultValue: string;
-      path: string;
-    }
->;
+export type StyleProps = Record<string, string | string[] | DataVariableProps | DataConditionProps>;
 
-export type UpdateStyleOptions = SetOptions & {
+export interface UpdateStyleOptions extends SetOptions {
   partial?: boolean;
   addStyle?: StyleProps;
   inline?: boolean;
   noEvent?: boolean;
-};
+}
+
+export type StyleableView = ComponentView | CssRuleView;
 
 const parserHtml = ParserHtml();
 
@@ -34,7 +36,13 @@ export const getLastStyleValue = (value: string | string[]) => {
 
 export default class StyleableModel<T extends ObjectHash = any> extends Model<T> {
   em?: EditorModel;
-  dataVariableListeners: Record<string, DataVariableListenerManager> = {};
+  views: StyleableView[] = [];
+  styleResolverListeners: Record<string, DataResolverListener> = {};
+
+  constructor(attributes: T, options: { em?: EditorModel } = {}) {
+    super(attributes, options);
+    this.em = options.em;
+  }
 
   /**
    * Parse style string to an object
@@ -51,21 +59,23 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
    * @return {Object}
    */
   extendStyle(prop: ObjectAny): ObjectAny {
-    return { ...this.getStyle(), ...prop };
+    return { ...this.getStyle('', { skipResolve: true }), ...prop };
   }
 
   /**
    * Get style object
    * @return {Object}
    */
-  getStyle(prop?: string | ObjectAny): StyleProps {
+  getStyle(prop?: string | ObjectAny, opts: { skipResolve?: boolean } = {}): StyleProps {
     const style = this.get('style') || {};
     const result: ObjectAny = { ...style };
-    if (this.em) {
-      const resolvedStyle = this.resolveDataVariables({ ...result });
+
+    if (this.em && !opts.skipResolve) {
+      const resolvedStyle = this.getResolvedStyles({ ...result });
       // @ts-ignore
       return prop && isString(prop) ? resolvedStyle[prop] : resolvedStyle;
     }
+
     return prop && isString(prop) ? result[prop] : result;
   }
 
@@ -100,10 +110,12 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
       }
 
       const styleValue = newStyle[key];
-      if (typeof styleValue === 'object' && styleValue.type === DataVariableType) {
-        const styleDataVariable = new StyleDataVariable(styleValue, { em: this.em });
-        newStyle[key] = styleDataVariable;
-        this.manageDataVariableListener(styleDataVariable, key);
+      if (isDataResolverProps(styleValue)) {
+        const dataResolver = this.getDataResolverInstance(styleValue);
+        if (dataResolver) {
+          newStyle[key] = dataResolver;
+          this.listenToDataResolver(dataResolver, key);
+        }
       }
     });
 
@@ -129,58 +141,80 @@ export default class StyleableModel<T extends ObjectHash = any> extends Model<T>
     return newStyle;
   }
 
-  /**
-   * Manage DataVariableListenerManager for a style property
-   */
-  manageDataVariableListener(dataVar: StyleDataVariable, styleProp: string) {
-    if (this.dataVariableListeners[styleProp]) {
-      this.dataVariableListeners[styleProp].listenToDataVariable();
+  private getDataResolverInstance(props: DataResolverProps) {
+    const em = this.em!;
+    let resolver;
+
+    switch (props.type) {
+      case DataVariableType:
+        resolver = new DataVariable(props, { em });
+        break;
+      case DataConditionType: {
+        const { condition, ifTrue, ifFalse } = props;
+        resolver = new DataCondition(condition, ifTrue, ifFalse, { em });
+        break;
+      }
+    }
+
+    return resolver;
+  }
+
+  listenToDataResolver(resolver: DataVariable | DataCondition, styleProp: string) {
+    const resolverListener = this.styleResolverListeners[styleProp];
+    if (resolverListener) {
+      resolverListener.listenToResolver();
     } else {
-      this.dataVariableListeners[styleProp] = new DataVariableListenerManager({
-        model: this,
+      this.styleResolverListeners[styleProp] = new DataResolverListener({
         em: this.em!,
-        dataVariable: dataVar,
-        updateValueFromDataVariable: (newValue: string) => this.updateStyleProp(styleProp, newValue),
+        resolver,
+        onUpdate: () => this.updateView(),
       });
     }
   }
 
-  /**
-   * Update a specific style property
-   */
-  updateStyleProp(prop: string, value: string) {
-    const style = this.getStyle();
-    style[prop] = value;
-    this.setStyle(style, { noEvent: true });
-    this.trigger(`change:style:${prop}`);
+  getView(frame?: Frame) {
+    let { views, em } = this;
+    const frm = frame || em?.getCurrentFrameModel();
+    return frm ? views.find((v) => v.frameView === frm.view) : views[0];
   }
 
-  /**
-   * Resolve data variables to their actual values
-   */
-  resolveDataVariables(style: StyleProps): StyleProps {
-    const resolvedStyle = { ...style };
-    keys(resolvedStyle).forEach((key) => {
-      const styleValue = resolvedStyle[key];
+  setView(view: StyleableView) {
+    let { views } = this;
+    !views.includes(view) && views.push(view);
+  }
+
+  removeView(view: StyleableView) {
+    const { views } = this;
+    views.splice(views.indexOf(view), 1);
+  }
+
+  updateView() {
+    this.views.forEach((view) => view.updateStyles());
+  }
+
+  getResolvedStyles(style: StyleProps): StyleProps {
+    const resultStyle = { ...style };
+
+    keys(resultStyle).forEach((key) => {
+      const styleValue = resultStyle[key];
 
       if (typeof styleValue === 'string' || Array.isArray(styleValue)) {
         return;
       }
 
-      if (
-        typeof styleValue === 'object' &&
-        styleValue.type === DataVariableType &&
-        !(styleValue instanceof StyleDataVariable)
-      ) {
-        const dataVar = new StyleDataVariable(styleValue, { em: this.em });
-        resolvedStyle[key] = dataVar.getDataValue();
+      if (isDataResolverProps(styleValue)) {
+        const resolver = this.getDataResolverInstance(styleValue);
+        if (resolver) {
+          resultStyle[key] = resolver.getDataValue();
+        }
       }
 
-      if (styleValue instanceof StyleDataVariable) {
-        resolvedStyle[key] = styleValue.getDataValue();
+      if (isDataResolver(styleValue)) {
+        resultStyle[key] = styleValue.getDataValue();
       }
     });
-    return resolvedStyle;
+
+    return resultStyle;
   }
 
   /**

@@ -1,11 +1,12 @@
 import { isEmpty, forEach, isString, isArray } from 'underscore';
-import { Model, ObjectAny } from '../../common';
+import { Model, ObjectAny, View } from '../../common';
 import StyleableModel from '../../domain_abstract/model/StyleableModel';
 import Selectors from '../../selector_manager/model/Selectors';
 import { getMediaLength } from '../../code_manager/model/CssGenerator';
 import { isEmptyObj, hasWin } from '../../utils/mixins';
 import Selector, { SelectorProps } from '../../selector_manager/model/Selector';
 import EditorModel from '../../editor/model/Editor';
+import CssRuleView from '../view/CssRuleView';
 
 /** @private */
 export interface CssRuleProperties {
@@ -92,6 +93,7 @@ export default class CssRule extends StyleableModel<CssRuleProperties> {
   config: CssRuleProperties;
   em?: EditorModel;
   opt: any;
+  views: CssRuleView[] = [];
 
   defaults() {
     return {
@@ -117,6 +119,7 @@ export default class CssRule extends StyleableModel<CssRuleProperties> {
     this.em = opt.em;
     this.ensureSelectors(null, null, {});
     this.on('change', this.__onChange);
+    this.setStyle(this.get('style'));
   }
 
   __onChange(m: CssRule, opts: any) {

@@ -1,3 +1,4 @@
+import { DynamicWatchersOptions } from './ComponentResolverWatcher';
 import Frame from '../../canvas/model/Frame';
 import { AddOptions, Nullable, OptionAsDocument } from '../../common';
 import EditorModel from '../../editor/model/Editor';
@@ -11,13 +12,19 @@ import Component from './Component';
 import Components from './Components';
 import { ToolbarButtonProps } from './ToolbarButton';
 import { ParseNodeOptions } from '../../parser/config/config';
-import { DataVariableType } from '../../data_sources/model/DataVariable';
+import { DataCollectionStateMap } from '../../data_sources/model/data_collection/types';
 
 export type DragMode = 'translate' | 'absolute' | '';
 
 export type DraggableDroppableFn = (source: Component, target: Component, index?: number) => boolean | void;
 
 export interface AddComponentsOption extends AddOptions, OptionAsDocument {}
+
+export interface ResetComponentsOptions extends AddComponentsOption {
+  previousModels?: Component[];
+  keepIds?: string[];
+  skipDomReset?: boolean;
+}
 
 interface ComponentWithCheck<C extends Component> {
   new (props: any, opt: ComponentOptions): C;
@@ -184,7 +191,7 @@ export interface ComponentProperties {
    * Component default style, eg. `{ width: '100px', height: '100px', 'background-color': 'red' }`
    * @default {}
    */
-  style?: string | Record<string, any | { type: typeof DataVariableType; path: string; value: string }>;
+  style?: string | Record<string, any>;
   /**
    * Component related styles, eg. `.my-component-class { color: red }`
    * @default ''
@@ -247,7 +254,7 @@ export interface ComponentProperties {
   [key: string]: any;
 }
 
-export interface SymbolToUpOptions {
+export interface SymbolToUpOptions extends DynamicWatchersOptions {
   changed?: string;
   fromInstance?: boolean;
   noPropagate?: boolean;
@@ -315,4 +322,5 @@ export interface ComponentOptions {
   frame?: Frame;
   temporary?: boolean;
   avoidChildren?: boolean;
+  forCloning?: boolean;
 }

@@ -1,5 +1,11 @@
+import ComponentTextView from '../../dom_components/view/ComponentTextView';
 import Editor from '../../editor';
 import RichTextEditor from '../model/RichTextEditor';
+
+export interface CustomRteOptions {
+  event?: MouseEvent;
+  view: ComponentTextView;
+}
 
 export interface CustomRTE<T = any> {
   /**
@@ -11,16 +17,16 @@ export interface CustomRTE<T = any> {
   /**
    * Create or enable the custom RTE.
    */
-  enable: (el: HTMLElement, rte: T | undefined) => T | Promise<T>;
+  enable: (el: HTMLElement, rte: T | undefined, opts: CustomRteOptions) => T | Promise<T>;
   /**
    * Disable the custom RTE.
    */
-  disable: (el: HTMLElement, rte: T) => any | Promise<any>;
+  disable: (el: HTMLElement, rte: T, opts: CustomRteOptions) => any | Promise<any>;
   /**
    * Get HTML content from the custom RTE.
    * If not specified, it will use the innerHTML of the element (passed also as `content` in options).
    */
-  getContent?: (el: HTMLElement, rte: T | undefined) => string | Promise<string>;
+  getContent?: (el: HTMLElement, rte: T | undefined, opts: CustomRteOptions) => string | Promise<string>;
   /**
    * Destroy the custom RTE.
    * Will be triggered on editor destroy.
@@ -80,11 +86,11 @@ export interface RichTextEditorConfig {
   custom?: boolean;
 }
 
-const config: RichTextEditorConfig = {
+const config: () => RichTextEditorConfig = () => ({
   stylePrefix: 'rte-',
   adjustToolbar: true,
   actions: ['bold', 'italic', 'underline', 'strikethrough', 'link', 'wrap'],
   custom: false,
-};
+});
 
 export default config;
