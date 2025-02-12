@@ -6,7 +6,8 @@ import EditorModel from '../../../src/editor/model/Editor';
 describe('DataSourceManager', () => {
   let em: EditorModel;
   let dsm: DataSourceManager;
-  const dsTest: DataSourceProps = {
+  type Record = { id: string; name: string };
+  const dsTest: DataSourceProps<Record> = {
     id: 'ds1',
     records: [
       { id: 'id1', name: 'Name1' },

@@ -28,7 +28,8 @@ import UndoManager from 'backbone-undo';
 import { isArray, isBoolean, isEmpty, unique, times } from 'underscore';
 import { Module } from '../abstract';
 import EditorModel from '../editor/model/Editor';
-import defaults, { UndoManagerConfig } from './config';
+import defConfig, { UndoManagerConfig } from './config';
+import { EditorEvents } from '../editor/types';
 
 export interface UndoGroup {
   index: number;
@@ -36,16 +37,18 @@ export interface UndoGroup {
   labels: string[];
 }
 
-const hasSkip = (opts: any) => opts.avoidStore || opts.noUndo;
+const hasSkip = (opts: any) => opts.avoidStore || opts.noUndo || opts.partial;
 
 const getChanged = (obj: any) => Object.keys(obj.changedAttributes());
+
+const changedMap = new WeakMap();
 
 export default class UndoManagerModule extends Module<UndoManagerConfig & { name?: string; _disable?: boolean }> {
   beforeCache?: any;
   um: any;
 
   constructor(em: EditorModel) {
-    super(em, 'UndoManager', defaults);
+    super(em, 'UndoManager', defConfig());
 
     if (this.config._disable) {
       this.config.maximumStackLength = 0;
@@ -69,22 +72,29 @@ export default class UndoManagerModule extends Module<UndoManagerConfig & { name
         return false;
       },
       on(object: any, v: any, opts: any) {
-        !this.beforeCache && (this.beforeCache = object.previousAttributes());
+        let before = changedMap.get(object);
+        if (!before) {
+          before = object.previousAttributes();
+          changedMap.set(object, before);
+        }
         const opt = opts || v || {};
-        opt.noUndo &&
+
+        if (opt.noUndo) {
           setTimeout(() => {
-            this.beforeCache = null;
+            changedMap.delete(object);
           });
+        }
+
         if (hasSkip(opt)) {
           return;
         } else {
           const after = object.toJSON({ fromUndo });
           const result = {
             object,
-            before: this.beforeCache,
+            before,
             after,
           };
-          this.beforeCache = null;
+          changedMap.delete(object);
           // Skip undo in case of empty changes
           if (isEmpty(after)) return;
 
@@ -135,7 +145,7 @@ export default class UndoManagerModule extends Module<UndoManagerConfig & { name
     this.um.on('undo redo', () => {
       em.getSelectedAll().map((c) => c.trigger('rerender:layer'));
     });
-    ['undo', 'redo'].forEach((ev) => this.um.on(ev, () => em.trigger(ev)));
+    [EditorEvents.undo, EditorEvents.redo].forEach((ev) => this.um.on(ev, () => em.trigger(ev)));
   }
 
   postLoad() {

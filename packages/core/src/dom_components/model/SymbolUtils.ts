@@ -3,6 +3,10 @@ import Component, { keySymbol, keySymbolOvrd, keySymbols } from './Component';
 import { SymbolToUpOptions } from './types';
 import { isEmptyObj } from '../../utils/mixins';
 import Components from './Components';
+import {
+  DataCollectionVariableType,
+  keyCollectionDefinition,
+} from '../../data_sources/model/data_collection/constants';
 
 export const isSymbolMain = (cmp: Component) => isArray(cmp.get(keySymbols));
 
@@ -129,38 +133,58 @@ export const logSymbol = (symb: Component, type: string, toUp: Component[], opts
   symb.em.log(type, { model: symb, toUp, context: 'symbols', opts });
 };
 
-export const updateSymbolProps = (symbol: Component, opts: SymbolToUpOptions = {}) => {
-  const changed = symbol.changedAttributes() || {};
-  const attrs = changed.attributes || {};
-  delete changed.status;
-  delete changed.open;
-  delete changed[keySymbols];
-  delete changed[keySymbol];
-  delete changed[keySymbolOvrd];
-  delete changed.attributes;
+export const updateSymbolProps = (symbol: Component, opts: SymbolToUpOptions = {}): void => {
+  const changed = symbol.dataResolverWatchers.getPropsDefsOrValues({ ...symbol.changedAttributes() });
+  const attrs = symbol.dataResolverWatchers.getAttributesDefsOrValues({ ...changed.attributes });
+
+  cleanChangedProperties(changed, attrs);
+
+  if (!isEmptyObj(changed)) {
+    const toUpdate = getSymbolsToUpdate(symbol, opts);
+
+    // Filter properties to propagate
+    filterPropertiesForPropagation(changed, symbol);
+
+    logSymbol(symbol, 'props', toUpdate, { opts, changed });
+
+    // Update child symbols
+    toUpdate.forEach((child) => {
+      const propsToUpdate = { ...changed };
+      filterPropertiesForPropagation(propsToUpdate, child);
+      child.set(propsToUpdate, { fromInstance: symbol, ...opts });
+    });
+  }
+};
+
+const cleanChangedProperties = (changed: Record<string, any>, attrs: Record<string, any>): void => {
+  const keysToDelete = ['status', 'open', keySymbols, keySymbol, keySymbolOvrd, 'attributes'];
+  keysToDelete.forEach((key) => delete changed[key]);
   delete attrs.id;
 
   if (!isEmptyObj(attrs)) {
     changed.attributes = attrs;
   }
+};
 
-  if (!isEmptyObj(changed)) {
-    const toUp = getSymbolsToUpdate(symbol, opts);
-    // Avoid propagating overrides to other symbols
-    keys(changed).map((prop) => {
-      if (isSymbolOverride(symbol, prop)) delete changed[prop];
-    });
+const filterPropertiesForPropagation = (props: Record<string, any>, component: Component): void => {
+  keys(props).forEach((prop) => {
+    if (!shouldPropagateProperty(props, prop, component)) {
+      delete props[prop];
+    }
+  });
+};
 
-    logSymbol(symbol, 'props', toUp, { opts, changed });
-    toUp.forEach((child) => {
-      const propsChanged = { ...changed };
-      // Avoid updating those with override
-      keys(propsChanged).map((prop) => {
-        if (isSymbolOverride(child, prop)) delete propsChanged[prop];
-      });
-      child.set(propsChanged, { fromInstance: symbol, ...opts });
-    });
-  }
+const shouldPropagateProperty = (props: Record<string, any>, prop: string, component: Component): boolean => {
+  const isCollectionVariableDefinition = (() => {
+    if (prop === 'attributes') {
+      const attributes = props['attributes'];
+      return Object.values(attributes).some((attr: any) => attr?.type === DataCollectionVariableType);
+    }
+
+    return props[prop]?.type === DataCollectionVariableType;
+  })();
+
+  return !isSymbolOverride(component, prop) || isCollectionVariableDefinition;
 };
 
 export const updateSymbolCls = (symbol: Component, opts: any = {}) => {
@@ -193,6 +217,9 @@ export const updateSymbolComps = (symbol: Component, m: Component, c: Components
     toUp.forEach((rel) => {
       const relCmps = rel.components();
       const toReset = cmps.map((cmp, i) => {
+        if (symbol.get(keyCollectionDefinition)) {
+          return cmp.clone({ symbol: isSymbol(cmp) });
+        }
         // This particular case here is to handle reset from `resetFromString`
         // where we can receive an array of regulat components or already
         // existing symbols (updated already before reset)
@@ -202,6 +229,7 @@ export const updateSymbolComps = (symbol: Component, m: Component, c: Components
         }
         return relCmps.at(i);
       });
+
       relCmps.reset(toReset, { fromInstance: symbol, ...c } as any);
     });
     // Add

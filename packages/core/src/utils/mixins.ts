@@ -36,6 +36,8 @@ export const get = (object: ObjectAny, path: string | string[], def: any) => {
   return (index && index == length ? object : undefined) ?? def;
 };
 
+export const serialize = (obj: ObjectAny) => JSON.parse(JSON.stringify(obj));
+
 export const isBultInMethod = (key: string) => isFunction(obj[key]);
 
 export const normalizeKey = (key: string) => (isBultInMethod(key) ? `_${key}` : key);

@@ -268,8 +268,11 @@ export default class InputNumber extends Input {
       }
     }
 
-    if (!limitlessMax && !isUndefined(max) && max !== '') val = val > max ? max : val;
-    if (!limitlessMin && !isUndefined(min) && min !== '') val = val < min ? min : val;
+    // Apply constraints only if val is a valid number
+    if (!isNaN(val) && val !== '') {
+      if (!limitlessMax && !isUndefined(max) && max !== '') val = val > max ? max : val;
+      if (!limitlessMin && !isUndefined(min) && min !== '') val = val < min ? min : val;
+    }
 
     return {
       force,

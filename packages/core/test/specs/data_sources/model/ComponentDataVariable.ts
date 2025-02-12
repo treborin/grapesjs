@@ -19,7 +19,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component initializes with data-variable content', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds1',
       records: [{ id: 'id1', name: 'Name1' }],
     };
@@ -42,7 +42,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component updates on data-variable change', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds2',
       records: [{ id: 'id1', name: 'Name1' }],
     };
@@ -87,7 +87,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component updates on data source reset', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds3',
       records: [{ id: 'id1', name: 'Name1' }],
     };
@@ -114,7 +114,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component updates on data source setRecords', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'component-setRecords',
       records: [{ id: 'id1', name: 'init name' }],
     };
@@ -143,7 +143,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component updates on record removal', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'ds4',
       records: [{ id: 'id1', name: 'Name1' }],
     };
@@ -172,7 +172,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component initializes and updates with data-variable for nested object', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'dsNestedObject',
       records: [
         {
@@ -208,7 +208,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component initializes and updates with data-variable for nested object inside an array', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'dsNestedArray',
       records: [
         {
@@ -256,7 +256,7 @@ describe('ComponentDataVariable', () => {
   });
 
   test('component initalizes and updates data on datarecord set object', () => {
-    const dataSource: DataSourceProps = {
+    const dataSource = {
       id: 'setObject',
       records: [{ id: 'id1', content: 'Hello World', color: 'red' }],
     };

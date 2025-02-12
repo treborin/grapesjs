@@ -1,6 +1,6 @@
 import { bindAll } from 'underscore';
 import { AddOptions, DisableOptions, ObjectAny, WithHTMLParserOptions } from '../../common';
-import RichTextEditorModule from '../../rich_text_editor';
+import RichTextEditorModule, { RteDisableResult } from '../../rich_text_editor';
 import RichTextEditor from '../../rich_text_editor/model/RichTextEditor';
 import { off, on } from '../../utils/dom';
 import { getComponentModel } from '../../utils/mixins';
@@ -71,7 +71,7 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
    * Enable element content editing
    * @private
    * */
-  async onActive(ev: Event) {
+  async onActive(ev: MouseEvent) {
     const { rte, em } = this;
     const { result, delegate } = this.canActivate();
 
@@ -91,7 +91,8 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
 
     if (rte) {
       try {
-        this.activeRte = await rte.enable(this, this.activeRte!, { event: ev });
+        const view = this;
+        this.activeRte = await rte.enable(view, this.activeRte!, { event: ev, view });
       } catch (err) {
         em.logError(err as any);
       }
@@ -115,14 +116,17 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
     const editable = model && model.get('editable');
 
     if (rte) {
+      let disableRes: RteDisableResult = {};
+      const content = await this.getContent();
+
       try {
-        await rte.disable(this, activeRte, opts);
+        disableRes = await rte.disable(this, activeRte, opts);
       } catch (err) {
         em.logError(err as any);
       }
 
-      if (editable && (await this.getContent()) !== this.lastContent) {
-        await this.syncContent(opts);
+      if (editable && (content !== this.lastContent || disableRes.forceSync)) {
+        await this.syncContent({ ...opts, content });
         this.lastContent = '';
       }
     }
@@ -151,12 +155,12 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
   async syncContent(opts: ObjectAny = {}) {
     const { model, rte, rteEnabled } = this;
     if (!rteEnabled && !opts.force) return;
-    const content = await this.getContent();
+    const content = opts.content ?? (await this.getContent());
     const comps = model.components();
     const contentOpt: ObjectAny = { fromDisable: 1, ...opts };
     model.set('content', '', contentOpt);
 
-    // If there is a custom RTE the content is just added staticly
+    // If there is a custom RTE the content is just added statically
     // inside 'content'
     if (rte?.customRte && !rte.customRte.parseContent) {
       comps.length &&
@@ -213,12 +217,11 @@ export default class ComponentTextView<TComp extends ComponentText = ComponentTe
    * @param  {Event} e
    */
   onInput() {
-    const { em } = this;
     const evPfx = 'component';
     const ev = [`${evPfx}:update`, `${evPfx}:input`].join(' ');
 
     // Update toolbars
-    em && em.trigger(ev, this.model);
+    this.em?.trigger(ev, this.model);
   }
 
   /**
