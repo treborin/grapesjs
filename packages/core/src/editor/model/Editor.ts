@@ -110,9 +110,9 @@ export default class EditorModel extends Model {
       device: '',
     };
   }
-
   Model = Model;
   Collection = Collection;
+  events = EditorEvents;
   __skip = false;
   defaultRunning = false;
   destroyed = false;
@@ -907,10 +907,10 @@ export default class EditorModel extends Model {
    * @private
    */
   runDefault(opts = {}) {
-    const command = this.get('Commands').get(this.config.defaultCommand);
+    const command = this.Commands.get(this.config.defaultCommand!);
     if (!command || this.defaultRunning) return;
-    command.stop(this, this, opts);
-    command.run(this, this, opts);
+    command.stop!(this as any, this, opts);
+    command.run!(this as any, this, opts);
     this.defaultRunning = true;
   }
 
@@ -920,11 +920,11 @@ export default class EditorModel extends Model {
    * @private
    */
   stopDefault(opts = {}) {
-    const commands = this.get('Commands');
+    const commands = this.Commands;
     if (!commands) return;
-    const command = commands.get(this.config.defaultCommand);
+    const command = commands.get(this.config.defaultCommand!);
     if (!command || !this.defaultRunning) return;
-    command.stop(this, this, opts);
+    command.stop!(this as any, this, opts);
     this.defaultRunning = false;
   }
 

@@ -800,6 +800,7 @@ export default {
     this.stopSelectComponent();
     !opts.preserveSelected && em.setSelected();
     this.toggleToolsEl();
+    this.updateAttached.cancel();
     editor && editor.stopCommand('resize');
   },
 } as CommandObject<any, { [k: string]: any }>;

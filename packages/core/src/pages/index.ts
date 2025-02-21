@@ -161,33 +161,37 @@ export default class PageManager extends ItemManagerModule<PageManagerConfig, Pa
 
   /**
    * Move a page to a specific index in the pages collection.
-   * If the index is out of bounds, an error will be logged and the page will not be moved.
+   * If the index is out of bounds, the page will not be moved.
    *
-   * @param {string} pageId - The ID of the page to move.
-   * @param {number} index - The target index where the page should be moved.
-   * @returns {Page | undefined} - The moved page, or `undefined` if the page does not exist or the index is out of bounds.
+   * @param {string|[Page]} page Page or page id to move.
+   * @param {Object} [opts] Move options
+   * @param {number} [opts.at] The target index where the page should be moved.
+   * @returns {Page | undefined} The moved page, or `undefined` if the page does not exist or the index is out of bounds.
    * @example
    * // Move a page to index 2
-   * const movedPage = pageManager.move('page-id', 2);
+   * const movedPage = pageManager.move('page-id', { at: 2 });
    * if (movedPage) {
    *   console.log('Page moved successfully:', movedPage);
    * } else {
    *   console.log('Page could not be moved.');
    * }
    */
-  move(pageId: string, index: number): Page | undefined {
-    const page = this.get(pageId);
+  move(page: string | Page, opts: AddOptions = {}): Page | undefined {
+    const { pages } = this;
+    const pg = isString(page) ? this.get(page) : page;
+    const { at = 0, ...resOpts } = opts;
 
-    if (!page) return;
+    if (!pg) return;
 
-    if (index < 0 || index >= this.pages.length) {
-      this.em.logError('Index out of bounds');
-    }
+    const currIndex = pages.indexOf(pg);
+    const sameIndex = currIndex === at;
 
-    this.remove(page, { temporary: true });
-    this.pages.add(page, { at: index });
+    if (at < 0 || at >= pages.length || sameIndex) return;
 
-    return page;
+    this.remove(pg, { ...resOpts, temporary: true });
+    pages.add(pg, { ...resOpts, at });
+
+    return pg;
   }
 
   /**
