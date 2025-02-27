@@ -322,7 +322,7 @@ export default class CanvasView extends ModuleView<Canvas> {
       const canvasWorldHeight = canvasHeight * zoomMltp;
       const canvasHeightDiff = canvasWorldHeight - canvasHeight;
       const yDelta = canvasHeightDiff / 2;
-      coords.y = (-boxRect.y + gapY) * zoomRatio - yDelta / zoomMltp;
+      coords.y = (-boxRect.y + gapY) * zoomMltp - yDelta / zoomMltp;
     }
 
     module.setCoords(coords.x, coords.y);
@@ -619,10 +619,10 @@ export default class CanvasView extends ModuleView<Canvas> {
 
     // #873 Adding setTimeout will make js components work on init of the editor
     setTimeout(() => {
-      component.emitWithEitor(ComponentsEvents.scriptMountBefore, dataToEmit);
+      component.emitWithEditor(ComponentsEvents.scriptMountBefore, dataToEmit);
       const scr = view.scriptContainer;
       scr?.appendChild(script);
-      component.emitWithEitor(ComponentsEvents.scriptMount, dataToEmit);
+      component.emitWithEditor(ComponentsEvents.scriptMount, dataToEmit);
     }, 0);
   }
 

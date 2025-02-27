@@ -36,6 +36,7 @@ export enum ComponentsEvents {
    */
   remove = 'component:remove',
   removeBefore = 'component:remove:before',
+  removed = 'component:removed',
 
   /**
    * @event `component:create` Component created.
@@ -74,6 +75,13 @@ export enum ComponentsEvents {
    * editor.on('component:script:unmount', ({ component, view, el }) => { ... });
    */
   scriptUnmount = 'component:script:unmount',
+
+  /**
+   * @event `component:render` Component rendered in the canvas. This event could be triggered multiple times for the same component (eg. undo/redo, explicit rerender).
+   * @example
+   * editor.on('component:render', ({ component, view, el }) => { ... });
+   */
+  render = 'component:render',
 
   /**
    * @event `symbol:main:add` Added new main symbol.

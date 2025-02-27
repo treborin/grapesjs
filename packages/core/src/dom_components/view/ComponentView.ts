@@ -518,7 +518,7 @@ TComp> {
   reset() {
     const view = this;
     const { el, model } = view;
-    view.scriptContainer && model.emitWithEitor(ComponentsEvents.scriptUnmount, { component: model, view, el });
+    view.scriptContainer && model.emitWithEditor(ComponentsEvents.scriptUnmount, { component: model, view, el });
     // @ts-ignore
     this.el = '';
     this._ensureElement();
@@ -583,7 +583,13 @@ TComp> {
 
   postRender() {
     if (!this.modelOpt.temporary) {
+      const { model, el } = this;
       this.onRender(this._clbObj());
+      model.emitWithEditor(ComponentsEvents.render, {
+        component: model,
+        view: this,
+        el,
+      });
     }
   }
 

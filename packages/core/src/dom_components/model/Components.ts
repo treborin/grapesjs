@@ -202,7 +202,7 @@ Component> {
         em.Commands.run('core:component-style-clear', { target: removed });
         removed.views.forEach((view) => {
           view.scriptContainer &&
-            removed.emitWithEitor(ComponentsEvents.scriptUnmount, { component: removed, view, el: view.el });
+            removed.emitWithEditor(ComponentsEvents.scriptUnmount, { component: removed, view, el: view.el });
         });
         removed.removed();
         removed.trigger('removed');
@@ -226,6 +226,14 @@ Component> {
     em.stopListening(removed);
     em.stopListening(removed.get('classes'));
     removed.__postRemove();
+
+    if (!removed.opt.temporary) {
+      const triggerRemoved = (cmp: Component) => {
+        cmp.emitWithEditor(ComponentsEvents.removed, cmp, { removeOptions: opts });
+        cmp.components().forEach((cmp) => triggerRemoved(cmp));
+      };
+      triggerRemoved(removed);
+    }
   }
 
   /** @ts-ignore */

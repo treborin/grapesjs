@@ -1770,8 +1770,8 @@ export default class Component extends StyleableModel<ComponentProperties> {
       });
   }
 
-  emitWithEitor(event: string, data?: Record<string, any>) {
-    [this.em, this].forEach((item) => item?.trigger(event, data));
+  emitWithEditor(event: string, data?: Record<string, any>, extra?: Record<string, any>) {
+    [this.em, this].forEach((item) => item?.trigger(event, data, extra));
   }
 
   /**
