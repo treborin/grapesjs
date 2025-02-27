@@ -95,9 +95,12 @@ export default class ComponentImageView<TComp extends ComponentImage = Component
   }
 
   onError() {
-    const fallback = this.model.getSrcResult({ fallback: true });
+    const { model, el } = this;
+    const fallback = model.getSrcResult({ fallback: true });
     if (fallback) {
-      this.el.src = fallback;
+      // Remove srcset to prevent error loop on src update #6332
+      if (el.srcset) el.srcset = '';
+      el.src = fallback;
     }
   }
 

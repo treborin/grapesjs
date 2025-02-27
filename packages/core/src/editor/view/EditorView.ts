@@ -1,6 +1,8 @@
 import { View, $ } from '../../common';
+import { getHostName } from '../../utils/host-name';
 import { appendStyles } from '../../utils/mixins';
 import EditorModel from '../model/Editor';
+import { EditorEvents } from '../types';
 
 export default class EditorView extends View<EditorModel> {
   constructor(model: EditorModel) {
@@ -11,8 +13,15 @@ export default class EditorView extends View<EditorModel> {
       Panels.active();
       Panels.disableButtons();
       UndoManager.clear();
+
+      if (model.getConfig().telemetry) {
+        this.sendTelemetryData().catch(() => {
+          // Telemetry data silent fail
+        });
+      }
+
       setTimeout(() => {
-        model.trigger('load', model.Editor);
+        model.trigger(EditorEvents.load, model.Editor);
         model.clearDirtyCount();
       });
     });
@@ -46,5 +55,43 @@ export default class EditorView extends View<EditorModel> {
     modules.forEach((md) => md.postRender?.(this));
 
     return this;
+  }
+
+  private async sendTelemetryData() {
+    const domain = getHostName();
+
+    if (domain === 'localhost' || domain.includes('localhost')) {
+      // Don't send telemetry data for localhost
+      return;
+    }
+
+    const sessionKeyPrefix = 'gjs_telemetry_sent_';
+    const { version } = this.model;
+    const sessionKey = `${sessionKeyPrefix}${version}`;
+
+    if (sessionStorage.getItem(sessionKey)) {
+      // Telemetry already sent for version this session
+      return;
+    }
+
+    const url = 'https://app.grapesjs.com';
+    const response = await fetch(`${url}/api/gjs/telemetry/collect`, {
+      method: 'POST',
+      body: JSON.stringify({ domain, version }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to send telemetry data ${await response.text()}`);
+    }
+
+    sessionStorage.setItem(sessionKey, 'true');
+
+    Object.keys(sessionStorage).forEach((key) => {
+      if (key.startsWith(sessionKeyPrefix) && key !== sessionKey) {
+        sessionStorage.removeItem(key);
+      }
+    });
+
+    this.trigger(EditorEvents.telemetryInit);
   }
 }

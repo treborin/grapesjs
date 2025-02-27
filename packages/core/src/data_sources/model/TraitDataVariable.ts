@@ -1,11 +1,14 @@
-import DataVariable from './DataVariable';
+import DataVariable, { DataVariableProps } from './DataVariable';
 import Trait from '../../trait_manager/model/Trait';
+import { TraitProperties } from '../../trait_manager/types';
+
+export interface TraitDataVariableProps extends Omit<TraitProperties, 'type'>, DataVariableProps {}
 
 export default class TraitDataVariable extends DataVariable {
   trait?: Trait;
 
-  constructor(attrs: any, options: any) {
-    super(attrs, options);
+  constructor(props: TraitDataVariableProps, options: any) {
+    super(props, options);
     this.trait = options.trait;
   }
 

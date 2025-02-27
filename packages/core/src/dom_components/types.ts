@@ -36,6 +36,7 @@ export enum ComponentsEvents {
    */
   remove = 'component:remove',
   removeBefore = 'component:remove:before',
+  removed = 'component:removed',
 
   /**
    * @event `component:create` Component created.
@@ -51,6 +52,36 @@ export enum ComponentsEvents {
    */
   update = 'component:update',
   updateInside = 'component:update-inside',
+
+  /**
+   * @event `component:select` Component selected.
+   * @example
+   * editor.on('component:select', (component) => { ... });
+   */
+  select = 'component:select',
+  selectBefore = 'component:select:before',
+
+  /**
+   * @event `component:script:mount` Component with script is mounted.
+   * @example
+   * editor.on('component:script:mount', ({ component, view, el }) => { ... });
+   */
+  scriptMount = 'component:script:mount',
+  scriptMountBefore = 'component:script:mount:before',
+
+  /**
+   * @event `component:script:unmount` Component with script is unmounted. This is triggered when the component is removed or the script execution has to be refreshed. This event might be useful to clean up resources.
+   * @example
+   * editor.on('component:script:unmount', ({ component, view, el }) => { ... });
+   */
+  scriptUnmount = 'component:script:unmount',
+
+  /**
+   * @event `component:render` Component rendered in the canvas. This event could be triggered multiple times for the same component (eg. undo/redo, explicit rerender).
+   * @example
+   * editor.on('component:render', ({ component, view, el }) => { ... });
+   */
+  render = 'component:render',
 
   /**
    * @event `symbol:main:add` Added new main symbol.

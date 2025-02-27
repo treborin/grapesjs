@@ -40,6 +40,7 @@ export default {
       'onHover',
       'onOut',
       'onClick',
+      'onCanvasScroll',
       'onFrameScroll',
       'onFrameResize',
       'onFrameUpdated',
@@ -75,14 +76,16 @@ export default {
    * @private
    * */
   toggleSelectComponent(enable: boolean) {
-    const { em } = this;
+    const { em, canvas } = this;
+    const canvasEl = canvas.getCanvasView().el;
     const listenToEl = em.getConfig().listenToEl!;
     const { parentNode } = em.getContainer()!;
     const method = enable ? 'on' : 'off';
     const methods = { on, off };
     const eventCmpUpdate = ComponentsEvents.update;
     !listenToEl.length && parentNode && listenToEl.push(parentNode as HTMLElement);
-    const trigger = (win: Window, body: HTMLBodyElement) => {
+    const trigger = (win: Window, body: HTMLBodyElement, canvasEl: HTMLElement) => {
+      methods[method](canvasEl, 'scroll', this.onCanvasScroll, true);
       methods[method](body, 'mouseover', this.onHover);
       methods[method](body, 'mouseleave', this.onOut);
       methods[method](body, 'click', this.onClick);
@@ -101,7 +104,7 @@ export default {
     em.Canvas.getFrames().forEach((frame) => {
       const { view } = frame;
       const win = view?.getWindow();
-      win && trigger(win, view?.getBody()!);
+      win && trigger(win, view?.getBody()!, canvasEl);
     });
   },
 
@@ -326,8 +329,10 @@ export default {
    */
   select(model: Component, event = {}) {
     if (!model) return;
-    this.editor.select(model, { event, useValid: true });
-    this.initResize(model);
+    const { em } = this;
+    em.setSelected(model, { event, useValid: true });
+    // Ensure we're passing the proper selected component #6096
+    this.initResize(em.getSelected());
   },
 
   /**
@@ -437,7 +442,6 @@ export default {
           const { keyHeight, keyWidth, currentUnit, keepAutoHeight, keepAutoWidth } = config;
           toggleBodyClass('add', ev, opts);
           modelToStyle = em.Styles.getModelToStyle(model);
-          canvas.toggleFramesEvents(false);
           const computedStyle = getComputedStyle(el);
           const modelStyle = modelToStyle.getStyle();
 
@@ -475,7 +479,6 @@ export default {
           onEnd(ev, opts);
           toggleBodyClass('remove', ev, opts);
           editor.trigger('component:resize', { ...resizeEventOpts, type: 'end' });
-          canvas.toggleFramesEvents(true);
           showOffsets = true;
           self.activeResizer = false;
         },
@@ -587,6 +590,15 @@ export default {
    */
   getBadge(opts: any = {}) {
     return this.canvas.getBadgeEl(opts.view);
+  },
+
+  /**
+   * On canvas scroll callback
+   * @private
+   */
+  onCanvasScroll(e: any) {
+    this.onFrameScroll(e);
+    this.onContainerChange();
   },
 
   /**
@@ -788,6 +800,7 @@ export default {
     this.stopSelectComponent();
     !opts.preserveSelected && em.setSelected();
     this.toggleToolsEl();
+    this.updateAttached.cancel();
     editor && editor.stopCommand('resize');
   },
 } as CommandObject<any, { [k: string]: any }>;

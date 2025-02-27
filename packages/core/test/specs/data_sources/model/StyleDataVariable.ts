@@ -19,7 +19,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component initializes with data-variable style', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -43,7 +43,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component updates on style change', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -73,7 +73,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component updates to defaultValue on record removal', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'colors-data-removal',
       records: [{ id: 'id1', color: 'red' }],
     };
@@ -121,7 +121,7 @@ describe('StyleDataVariable', () => {
   });
 
   test('component initializes and updates with data-variable style for nested object', () => {
-    const styleDataSource: DataSourceProps = {
+    const styleDataSource = {
       id: 'style-data',
       records: [
         {
@@ -155,5 +155,64 @@ describe('StyleDataVariable', () => {
 
     const updatedStyle = cmp.getStyle();
     expect(updatedStyle).toHaveProperty('color', 'blue');
+  });
+
+  describe('.addToCollection', () => {
+    test('should add a datavariable to css rule made via .addToCollection', () => {
+      const dsId = 'globalStyles';
+      const drId = 'red-header';
+      const selector = 'h1';
+
+      const addToCollectionDataSource = {
+        id: dsId,
+        records: [
+          {
+            id: drId,
+            property: 'color',
+            value: 'red',
+            selector,
+            label: 'Red Header',
+          },
+        ],
+      };
+      dsm.add(addToCollectionDataSource);
+
+      cmpRoot.append({
+        tagName: 'h1',
+        type: 'text',
+        content: 'Hello World',
+      })[0];
+
+      const cssComposer = em.getEditor().CssComposer;
+
+      const [rule] = cssComposer.addCollection([
+        {
+          selectors: [],
+          selectorsAdd: selector,
+          group: `globalStyles:${drId}`,
+          style: {
+            color: {
+              type: DataVariableType,
+              defaultValue: 'black',
+              path: `${dsId}.${drId}.value`,
+            },
+          },
+        },
+      ]);
+
+      cssComposer.render();
+      const view = rule.getView();
+
+      expect(rule.getStyle()).toHaveProperty('color', 'red');
+      expect(em.getEditor().getCss()).toContain(`${selector}{color:red;}`);
+      expect(view?.el.innerHTML).toContain(`h1{color:red;}`);
+
+      const ds = dsm.get(dsId);
+      ds.getRecord(drId)?.set({ value: 'blue' });
+
+      expect(rule.getStyle()).toHaveProperty('color', 'blue');
+      expect(em.getEditor().getCss()).toContain(`${selector}{color:blue;}`);
+      expect(view?.el.innerHTML).toContain(`h1{color:blue;}`);
+    });
   });
 });

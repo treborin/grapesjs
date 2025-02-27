@@ -4,9 +4,15 @@ export { default as $ } from '../utils/cash-dom';
 
 interface NOOP {}
 
+export const collectionEvents = 'add remove reset change';
+
 export type Debounced = Function & { cancel(): void };
 
-export type SetOptions = Backbone.ModelSetOptions & { avoidStore?: boolean; avoidTransformers?: boolean };
+export type SetOptions = Backbone.ModelSetOptions & {
+  avoidStore?: boolean;
+  avoidTransformers?: boolean;
+  partial?: boolean;
+};
 
 export type AddOptions = Backbone.AddOptions & { temporary?: boolean; action?: string };
 
@@ -14,9 +20,11 @@ export type DisableOptions = { fromMove?: boolean };
 
 export type LocaleOptions = { locale?: boolean };
 
+export type UndoOptions = { fromUndo?: boolean };
+
 export type WithHTMLParserOptions = { parserOptions?: HTMLParserOptions };
 
-export type RemoveOptions = Backbone.Silenceable;
+export type RemoveOptions = Backbone.Silenceable & UndoOptions & { dangerously?: boolean; temporary?: boolean };
 
 export type EventHandler = Backbone.EventHandler;
 

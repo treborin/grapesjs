@@ -19,6 +19,11 @@ export interface DeviceProperties {
    */
   height?: string;
   /**
+   * Min height to set for the editor iframe.
+   * @example '600px'
+   */
+  minHeight?: string;
+  /**
    * The width which will be used in media queries, if empty the `width` will be used.
    * @example '900px'
    */

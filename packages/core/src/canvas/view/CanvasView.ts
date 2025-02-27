@@ -19,6 +19,7 @@ import Frame from '../model/Frame';
 import { GetBoxRectOptions, ToWorldOption } from '../types';
 import FrameView from './FrameView';
 import FramesView from './FramesView';
+import { ComponentsEvents } from '../../dom_components/types';
 
 export interface MarginPaddingOffsets {
   marginTop?: number;
@@ -46,6 +47,7 @@ export interface FitViewportOptions {
   gap?: number | { x: number; y: number };
   ignoreHeight?: boolean;
   el?: HTMLElement;
+  zoom?: number;
 }
 
 export default class CanvasView extends ModuleView<Canvas> {
@@ -82,7 +84,7 @@ export default class CanvasView extends ModuleView<Canvas> {
   frames!: FramesView;
   frame?: FrameView;
 
-  private timerZoom?: number;
+  private timerZoom?: NodeJS.Timeout;
 
   private frmOff?: { top: number; left: number; width: number; height: number };
   private cvsOff?: { top: number; left: number; width: number; height: number };
@@ -133,6 +135,7 @@ export default class CanvasView extends ModuleView<Canvas> {
   }
 
   remove(...args: any) {
+    clearTimeout(this.timerZoom);
     this.frames?.remove();
     //@ts-ignore
     this.frames = undefined;
@@ -240,12 +243,12 @@ export default class CanvasView extends ModuleView<Canvas> {
     this.clearOff();
     toolsWrpEl.style.display = 'none';
     em.trigger('canvas:update', ev);
-    this.timerZoom && clearTimeout(this.timerZoom);
+    clearTimeout(this.timerZoom);
     this.timerZoom = setTimeout(() => {
       em.stopDefault(defOpts);
       em.runDefault(defOpts);
       toolsWrpEl.style.display = '';
-    }, 300) as any;
+    }, 300);
   }
 
   updateFramesArea() {
@@ -268,6 +271,7 @@ export default class CanvasView extends ModuleView<Canvas> {
 
   fitViewport(opts: FitViewportOptions = {}) {
     const { em, module, model } = this;
+    this.clearOff();
     const canvasRect = this.getCanvasOffset();
     const { el } = opts;
     const elFrame = el && getComponentView(el)?.frameView;
@@ -302,7 +306,7 @@ export default class CanvasView extends ModuleView<Canvas> {
 
     const zoomRatio = noHeight ? widthRatio : Math.min(widthRatio, heightRatio);
     const zoom = zoomRatio * 100;
-    module.setZoom(zoom);
+    module.setZoom(opts.zoom ?? zoom);
 
     // check for the frame witdh is necessary as we're centering the frame via CSS
     const coordX = -boxRect.x + (frame.width >= canvasWidth ? canvasWidth / 2 - boxWidth / 2 : -gapX);
@@ -318,7 +322,7 @@ export default class CanvasView extends ModuleView<Canvas> {
       const canvasWorldHeight = canvasHeight * zoomMltp;
       const canvasHeightDiff = canvasWorldHeight - canvasHeight;
       const yDelta = canvasHeightDiff / 2;
-      coords.y = (-boxRect.y + gapY) * zoomRatio - yDelta / zoomMltp;
+      coords.y = (-boxRect.y + gapY) * zoomMltp - yDelta / zoomMltp;
     }
 
     module.setCoords(coords.x, coords.y);
@@ -357,11 +361,12 @@ export default class CanvasView extends ModuleView<Canvas> {
   }
 
   getRectToScreen(boxRect: Partial<BoxRect>): BoxRect {
+    const canvasScroll = this.getCanvasScroll();
     const zoom = this.module.getZoomDecimal();
     const coords = this.module.getCoords();
     const vwDelta = this.getViewportDelta();
-    const x = (boxRect.x ?? 0) * zoom + coords.x + vwDelta.x || 0;
-    const y = (boxRect.y ?? 0) * zoom + coords.y + vwDelta.y || 0;
+    const x = (boxRect.x ?? 0) * zoom - canvasScroll.scrollLeft + coords.x + vwDelta.x || 0;
+    const y = (boxRect.y ?? 0) * zoom - canvasScroll.scrollTop + coords.y + vwDelta.y || 0;
 
     return {
       x,
@@ -460,6 +465,7 @@ export default class CanvasView extends ModuleView<Canvas> {
       const frEl = winEl ? (winEl.frameElement as HTMLElement) : frame;
       this.frmOff = this.offset(frEl || frame);
     }
+
     return this.frmOff;
   }
 
@@ -562,14 +568,32 @@ export default class CanvasView extends ModuleView<Canvas> {
   }
 
   /**
+   * Returns the scroll position of the canvas.
+   *
+   * If the canvas is scrollable, returns the current `scrollTop` and `scrollLeft` values.
+   * Otherwise, returns an object with `scrollTop` and `scrollLeft` both set to 0.
+   *
+   * @returns An object containing the vertical and horizontal scroll positions.
+   */
+  getCanvasScroll(): { scrollTop: number; scrollLeft: number } {
+    return this.config.scrollableCanvas
+      ? {
+          scrollTop: this.el.scrollTop,
+          scrollLeft: this.el.scrollLeft,
+        }
+      : { scrollTop: 0, scrollLeft: 0 };
+  }
+
+  /**
    * Update javascript of a specific component passed by its View
    * @param {ModuleView} view Component's View
    * @private
    */
   //TODO change type after the ComponentView was updated to ts
-  updateScript(view: any) {
-    const model = view.model;
-    const id = model.getId();
+  updateScript(view: ComponentView) {
+    const component = view.model;
+    const id = component.getId();
+    const dataToEmit = { component, view, el: view.el };
 
     if (!view.scriptContainer) {
       view.scriptContainer = createEl('div', { 'data-id': id });
@@ -582,20 +606,23 @@ export default class CanvasView extends ModuleView<Canvas> {
     // In editor, I make use of setTimeout as during the append process of elements
     // those will not be available immediately, therefore 'item' variable
     const script = document.createElement('script');
-    const scriptFn = model.getScriptString();
-    const scriptFnStr = model.get('script-props') ? scriptFn : `function(){\n${scriptFn}\n;}`;
-    const scriptProps = JSON.stringify(model.__getScriptProps());
+    const scriptFn = component.getScriptString();
+    const scriptFnStr = component.get('script-props') ? scriptFn : `function(){\n${scriptFn}\n;}`;
+    const scriptProps = JSON.stringify(component.__getScriptProps());
     script.innerHTML = `
       setTimeout(function() {
         var item = document.getElementById('${id}');
         if (!item) return;
-        (${scriptFnStr}.bind(item))(${scriptProps})
+        var script = (${scriptFnStr}).bind(item);
+        script(${scriptProps}, { el: item });
       }, 1);`;
-    // #873
-    // Adding setTimeout will make js components work on init of the editor
+
+    // #873 Adding setTimeout will make js components work on init of the editor
     setTimeout(() => {
+      component.emitWithEditor(ComponentsEvents.scriptMountBefore, dataToEmit);
       const scr = view.scriptContainer;
       scr?.appendChild(script);
+      component.emitWithEditor(ComponentsEvents.scriptMount, dataToEmit);
     }, 0);
   }
 
@@ -666,7 +693,10 @@ export default class CanvasView extends ModuleView<Canvas> {
     this.toolsGlobEl = el.querySelector(`.${ppfx}tools-gl`)!;
     this.spotsEl = el.querySelector('[data-spots]')!;
     this.cvStyle = el.querySelector('[data-canvas-style]')!;
-    this.el.className = getUiClass(em, this.className);
+    el.className = getUiClass(em, this.className);
+    if (config.scrollableCanvas === true) {
+      el.style.overflow = 'auto';
+    }
     this.ready = true;
     this._renderFrames();
 

@@ -13,6 +13,7 @@ import Component, { avoidInline } from '../model/Component';
 import Components from '../model/Components';
 import { ComponentOptions } from '../model/types';
 import ComponentsView from './ComponentsView';
+import { ComponentsEvents } from '../types';
 
 type ClbObj = ReturnType<ComponentView['_clbObj']>;
 
@@ -163,8 +164,10 @@ TComp> {
     if (!this.__isDraggable()) return false;
     event.stopPropagation();
     event.preventDefault();
+    const selected = this.em.getSelectedAll();
+    const modelsToMove = selected.includes(this.model) ? selected : [this.model];
     this.em.Commands.run('tlb-move', {
-      target: this.model,
+      target: modelsToMove,
       event,
     });
   }
@@ -239,7 +242,7 @@ TComp> {
     const hoveredCls = `${ppfx}hovered`;
     const noPointerCls = `${ppfx}no-pointer`;
     const pointerInitCls = `${ppfx}pointer-init`;
-    const toRemove = [selectedCls, selectedParentCls, freezedCls, hoveredCls, noPointerCls];
+    const toRemove = [selectedCls, selectedParentCls, freezedCls, hoveredCls, noPointerCls, pointerInitCls];
     const selCls = extHl && !opts.noExtHl ? '' : selectedCls;
     this.$el.removeClass(toRemove.join(' '));
     const actualCls = el.getAttribute('class') || '';
@@ -300,6 +303,10 @@ TComp> {
     } else {
       this.setAttribute('style', model.styleToString(opts));
     }
+  }
+
+  updateStyles() {
+    this.updateStyle();
   }
 
   /**
@@ -509,7 +516,9 @@ TComp> {
    * Recreate the element of the view
    */
   reset() {
-    const { el } = this;
+    const view = this;
+    const { el, model } = view;
+    view.scriptContainer && model.emitWithEditor(ComponentsEvents.scriptUnmount, { component: model, view, el });
     // @ts-ignore
     this.el = '';
     this._ensureElement();
@@ -574,7 +583,13 @@ TComp> {
 
   postRender() {
     if (!this.modelOpt.temporary) {
+      const { model, el } = this;
       this.onRender(this._clbObj());
+      model.emitWithEditor(ComponentsEvents.render, {
+        component: model,
+        view: this,
+        el,
+      });
     }
   }
 

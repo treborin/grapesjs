@@ -4,6 +4,7 @@ import { Coordinates, CoordinatesTypes, DEFAULT_COORDS } from '../../common';
 import { evUpdate as evDeviceUpdate } from '../../device_manager';
 import Page from '../../pages/model/Page';
 import PagesEvents from '../../pages/types';
+import Frame from './Frame';
 import Frames from './Frames';
 
 export default class Canvas extends ModuleModel<CanvasModule> {
@@ -56,14 +57,14 @@ export default class Canvas extends ModuleModel<CanvasModule> {
     this.updateDevice({ frame: page.getMainFrame() });
   }
 
-  updateDevice(opts: any = {}) {
+  updateDevice(opts: { frame?: Frame } = {}) {
     const { em } = this;
     const device = em.getDeviceModel();
-    const model = opts.frame || em.getCurrentFrameModel();
+    const frame = opts.frame || em.getCurrentFrameModel();
 
-    if (model && device) {
-      const { width, height } = device.attributes;
-      model.set({ width, height }, { noUndo: 1 });
+    if (frame && device) {
+      const { width, height, minHeight } = device.attributes;
+      frame.set({ width, height, minHeight }, { noUndo: 1 });
     }
   }
 

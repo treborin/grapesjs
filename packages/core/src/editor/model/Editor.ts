@@ -3,7 +3,7 @@ import Backbone from 'backbone';
 import $ from '../../utils/cash-dom';
 import Extender from '../../utils/extender';
 import { hasWin, isEmptyObj, wait } from '../../utils/mixins';
-import { AddOptions, Model, Collection, ObjectAny } from '../../common';
+import { Model, Collection, ObjectAny } from '../../common';
 import Selected from './Selected';
 import FrameView from '../../canvas/view/FrameView';
 import Editor from '..';
@@ -39,10 +39,13 @@ import { CssGeneratorBuildOptions } from '../../code_manager/model/CssGenerator'
 import ComponentView from '../../dom_components/view/ComponentView';
 import { ProjectData, StorageOptions } from '../../storage_manager/model/IStorage';
 import CssRules from '../../css_composer/model/CssRules';
-import { ComponentAdd, DragMode } from '../../dom_components/model/types';
+import { AddComponentsOption, ComponentAdd, DragMode } from '../../dom_components/model/types';
 import ComponentWrapper from '../../dom_components/model/ComponentWrapper';
 import { CanvasSpotBuiltInTypes } from '../../canvas/model/CanvasSpot';
 import DataSourceManager from '../../data_sources';
+import { ComponentsEvents } from '../../dom_components/types';
+import { InitEditorConfig } from '../..';
+import { EditorEvents } from '../types';
 
 Backbone.$ = $;
 
@@ -72,6 +75,7 @@ const storableDeps: (new (em: EditorModel) => IModule & IStorableModule)[] = [
   CssComposer,
   PageManager,
   ComponentManager,
+  DataSourceManager,
 ];
 
 Extender({ $ });
@@ -86,6 +90,7 @@ const logs = {
 export interface EditorLoadOptions {
   /** Clear the editor state (eg. dirty counter, undo manager, etc.). */
   clear?: boolean;
+  initial?: boolean;
 }
 
 export default class EditorModel extends Model {
@@ -105,13 +110,13 @@ export default class EditorModel extends Model {
       device: '',
     };
   }
-
   Model = Model;
   Collection = Collection;
+  events = EditorEvents;
   __skip = false;
   defaultRunning = false;
   destroyed = false;
-  _config: EditorConfig;
+  _config: InitEditorConfig;
   _storageTimeout?: ReturnType<typeof setTimeout>;
   attrsOrig: any;
   timedInterval?: ReturnType<typeof setTimeout>;
@@ -305,6 +310,10 @@ export default class EditorModel extends Model {
     return this._config;
   }
 
+  get version() {
+    return this.config.grapesjs?.version || '';
+  }
+
   /**
    * Get configurations
    * @param  {string} [prop] Property name
@@ -326,6 +335,7 @@ export default class EditorModel extends Model {
    */
   loadOnStart() {
     const { projectData, headless } = this.config;
+    const loadOpts: EditorLoadOptions = { initial: true };
     const sm = this.Storage;
 
     // In `onLoad`, the module will try to load the data from its configurations.
@@ -338,16 +348,16 @@ export default class EditorModel extends Model {
     };
 
     if (headless) {
-      projectData && this.loadData(projectData);
+      projectData && this.loadData(projectData, loadOpts);
       postLoad();
     } else {
       // Defer for storage load events.
       this._storageTimeout = setTimeout(async () => {
         if (projectData) {
-          this.loadData(projectData);
+          this.loadData(projectData, loadOpts);
         } else if (sm?.canAutoload()) {
           try {
-            await this.load();
+            await this.load({}, loadOpts);
           } catch (error) {
             this.logError(error as string);
           }
@@ -363,6 +373,7 @@ export default class EditorModel extends Model {
       storageManager: false,
       undoManager: false,
     });
+    shallow.set({ isShallow: true });
     // We only need to load a few modules
     shallow.Pages.onLoad();
     shallow.Canvas.postLoad();
@@ -380,7 +391,7 @@ export default class EditorModel extends Model {
 
     if (!opts.isClear) {
       this.updateItr && clearTimeout(this.updateItr);
-      this.updateItr = setTimeout(() => this.trigger('update'));
+      this.updateItr = setTimeout(() => this.trigger(EditorEvents.update));
     }
 
     if (this.config.noticeOnUnload) {
@@ -437,7 +448,7 @@ export default class EditorModel extends Model {
    * */
   handleUpdates(model: any, val: any, opt: any = {}) {
     // Component has been added temporarily - do not update storage or record changes
-    if (this.__skip || opt.temporary || opt.noCount || opt.avoidStore || !this.get('ready')) {
+    if (this.__skip || opt.temporary || opt.noCount || opt.avoidStore || opt.partial || !this.get('ready')) {
       return;
     }
 
@@ -507,7 +518,7 @@ export default class EditorModel extends Model {
 
     models.forEach((model) => {
       if (model) {
-        this.trigger('component:select:before', model, opts);
+        this.trigger(ComponentsEvents.selectBefore, model, opts);
 
         // Check for valid selectable
         if (!model.get('selectable') || opts.abort) {
@@ -521,10 +532,14 @@ export default class EditorModel extends Model {
         }
       }
 
-      // Hanlde multiple selection
+      // Handle multiple selection
       if (ctrlKey && mltSel) {
         return this.toggleSelected(model);
       } else if (shiftKey && mltSel) {
+        if (this.isEditing()) {
+          // Fixes #6345 where a shift click while editing text should not assume a selection of a component
+          return;
+        }
         this.clearSelection(this.Canvas.getWindow());
         const coll = model.collection;
         const index = model.index();
@@ -547,19 +562,19 @@ export default class EditorModel extends Model {
 
         if (!isUndefined(min)) {
           while (min !== index) {
-            this.addSelected(coll.at(min));
+            this.addSelected(coll.at(min), opts);
             min++;
           }
         }
 
         if (!isUndefined(max)) {
           while (max !== index) {
-            this.addSelected(coll.at(max));
+            this.addSelected(coll.at(max), opts);
             max--;
           }
         }
 
-        return this.addSelected(model);
+        return this.addSelected(model, opts);
       }
 
       !multiple && this.removeSelected(selected.filter((s) => s !== model));
@@ -592,7 +607,7 @@ export default class EditorModel extends Model {
       toDeselect.forEach((cmp) => this.removeSelected(cmp, opts));
 
       selected.addComponent(model, opts);
-      this.trigger('component:select', model, opts);
+      this.trigger(ComponentsEvents.select, model, opts);
       this.Canvas.addSpot({
         type: CanvasSpotBuiltInTypes.Select,
         component: model,
@@ -699,7 +714,7 @@ export default class EditorModel extends Model {
    * @return {this}
    * @public
    */
-  setComponents(components: ComponentAdd, opt: AddOptions = {}) {
+  setComponents(components: ComponentAdd, opt: AddComponentsOption = {}) {
     return this.Components.setComponents(components, opt);
   }
 
@@ -843,7 +858,7 @@ export default class EditorModel extends Model {
    */
   async load<T extends StorageOptions>(options?: T, loadOptions: EditorLoadOptions = {}) {
     const result = await this.Storage.load(options);
-    this.loadData(result);
+    this.loadData(result, loadOptions);
     // Wait in order to properly update the dirty counter (#5385)
     await wait();
 
@@ -864,15 +879,20 @@ export default class EditorModel extends Model {
     this.storables.forEach((m) => {
       result = { ...result, ...m.store(1) };
     });
-    return JSON.parse(JSON.stringify(result));
+    const project = JSON.parse(JSON.stringify(result));
+    this.trigger(EditorEvents.projectGet, { project });
+    return project;
   }
 
-  loadData(data: ProjectData = {}): ProjectData {
-    if (!isEmptyObj(data)) {
+  loadData(project: ProjectData = {}, opts: EditorLoadOptions = {}): ProjectData {
+    let loaded = false;
+    if (!isEmptyObj(project)) {
       this.storables.forEach((module) => module.clear());
-      this.storables.forEach((module) => module.load(data));
+      this.storables.forEach((module) => module.load(project));
+      loaded = true;
     }
-    return data;
+    this.trigger(EditorEvents.projectLoad, { project, loaded, initial: !!opts.initial });
+    return project;
   }
 
   /**
@@ -891,10 +911,10 @@ export default class EditorModel extends Model {
    * @private
    */
   runDefault(opts = {}) {
-    const command = this.get('Commands').get(this.config.defaultCommand);
+    const command = this.Commands.get(this.config.defaultCommand!);
     if (!command || this.defaultRunning) return;
-    command.stop(this, this, opts);
-    command.run(this, this, opts);
+    command.stop!(this as any, this, opts);
+    command.run!(this as any, this, opts);
     this.defaultRunning = true;
   }
 
@@ -904,11 +924,11 @@ export default class EditorModel extends Model {
    * @private
    */
   stopDefault(opts = {}) {
-    const commands = this.get('Commands');
+    const commands = this.Commands;
     if (!commands) return;
-    const command = commands.get(this.config.defaultCommand);
+    const command = commands.get(this.config.defaultCommand!);
     if (!command || !this.defaultRunning) return;
-    command.stop(this, this, opts);
+    command.stop!(this as any, this, opts);
     this.defaultRunning = false;
   }
 
@@ -1017,6 +1037,7 @@ export default class EditorModel extends Model {
    */
   destroyAll() {
     const { config, view } = this;
+    this.trigger(EditorEvents.destroy);
     const editor = this.getEditor();
     // @ts-ignore
     const { editors = [] } = config.grapesjs || {};
@@ -1039,6 +1060,7 @@ export default class EditorModel extends Model {
     editors.splice(editors.indexOf(editor), 1);
     //@ts-ignore
     hasWin() && $(config.el).empty().attr(this.attrsOrig);
+    this.trigger(EditorEvents.destroyed);
   }
 
   getEditing(): Component | undefined {
@@ -1056,12 +1078,13 @@ export default class EditorModel extends Model {
   }
 
   log(msg: string, opts: any = {}) {
+    const logEvent = EditorEvents.log;
     const { ns, level = 'debug' } = opts;
-    this.trigger('log', msg, opts);
-    level && this.trigger(`log:${level}`, msg, opts);
+    this.trigger(logEvent, msg, opts);
+    level && this.trigger(`${logEvent}:${level}`, msg, opts);
 
     if (ns) {
-      const logNs = `log-${ns}`;
+      const logNs = `${logEvent}-${ns}`;
       this.trigger(logNs, msg, opts);
       level && this.trigger(`${logNs}:${level}`, msg, opts);
     }

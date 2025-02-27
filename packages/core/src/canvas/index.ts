@@ -35,7 +35,7 @@ import Component from '../dom_components/model/Component';
 import ComponentView from '../dom_components/view/ComponentView';
 import EditorModel from '../editor/model/Editor';
 import { getElement, getViewEl } from '../utils/mixins';
-import defaults, { CanvasConfig } from './config/config';
+import defConfig, { CanvasConfig } from './config/config';
 import Canvas from './model/Canvas';
 import CanvasSpot, { CanvasSpotBuiltInTypes, CanvasSpotProps } from './model/CanvasSpot';
 import CanvasSpots from './model/CanvasSpots';
@@ -43,10 +43,13 @@ import Frame from './model/Frame';
 import { CanvasEvents, CanvasRefreshOptions, ToWorldOption } from './types';
 import CanvasView, { FitViewportOptions } from './view/CanvasView';
 import FrameView from './view/FrameView';
+import { DragSource } from '../utils/sorter/types';
+import AutoScroller from '../utils/AutoScroller';
 
 export type CanvasEvent = `${CanvasEvents}`;
 
 export default class CanvasModule extends Module<CanvasConfig> {
+  autoScroller: AutoScroller;
   /**
    * Get configuration object
    * @name getConfig
@@ -75,13 +78,15 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * @private
    */
   constructor(em: EditorModel) {
-    super(em, 'Canvas', defaults);
+    super(em, 'Canvas', defConfig());
 
     this.canvas = new Canvas(this);
     this.spots = new CanvasSpots(this);
     this.model = this.canvas;
     this.startAutoscroll = this.startAutoscroll.bind(this);
     this.stopAutoscroll = this.stopAutoscroll.bind(this);
+    this.autoScroller = new AutoScroller();
+
     return this;
   }
 
@@ -417,28 +422,38 @@ export default class CanvasModule extends Module<CanvasConfig> {
     const canvasOffset = opts.canvasOff || this.canvasRectOffset(el, elRect);
     const targetHeight = targetEl.offsetHeight || 0;
     const targetWidth = targetEl.offsetWidth || 0;
-    const elRight = elRect.left + elRect.width;
     const canvasView = this.getCanvasView();
+    const { scrollTop: canvasScrollTop, scrollLeft: canvasScrollLeft } = canvasView.getCanvasScroll();
     const canvasRect = canvasView.getPosition();
-    const frameOffset = canvasView.getFrameOffset(el);
     const { event } = opts;
 
-    let top = -targetHeight;
-    let left = !isUndefined(opts.left) ? opts.left : elRect.width - targetWidth;
-    left = elRect.left < -left ? -elRect.left : left;
-    left = elRight > canvasRect.width ? left - (elRight - canvasRect.width) : left;
+    const defaultLeftOffset = elRect.width - targetWidth;
+    const defaultTopOffset = -targetHeight;
 
-    // Check when the target top edge reaches the top of the viewable canvas
-    if (canvasOffset.top < targetHeight) {
+    let left = !isUndefined(opts.left) ? opts.left : defaultLeftOffset;
+    const canvasLiftLimit = Math.max(-elRect.left + canvasScrollLeft, 0);
+    left = Math.max(left, canvasLiftLimit);
+
+    const elementRightLimit = elRect.width - targetWidth;
+    left = Math.min(left, elementRightLimit);
+
+    const canvasRightLimit = canvasRect.width + canvasScrollLeft - targetWidth - elRect.left;
+    left = Math.min(left, canvasRightLimit);
+
+    const targetReachesCanvasTop = canvasOffset.top < targetHeight + canvasScrollTop;
+    let top = defaultTopOffset;
+
+    if (targetReachesCanvasTop) {
       const fullHeight = elRect.height + targetHeight;
-      const elIsShort = fullHeight < frameOffset.height;
+      const elementIsShorterThanFrame = fullHeight < canvasRect.height;
 
       // Scroll with the window if the top edge is reached and the
       // element is bigger than the canvas
-      if (elIsShort) {
+      if (elementIsShorterThanFrame) {
         top = top + fullHeight;
       } else {
-        top = -canvasOffset.top < elRect.height ? -canvasOffset.top : elRect.height;
+        const canvasRelativeTop = -canvasOffset.top + canvasScrollTop;
+        top = canvasRelativeTop < elRect.height ? canvasRelativeTop : elRect.height;
       }
     }
 
@@ -498,14 +513,50 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * @return {Object}
    * @private
    */
-  getMouseRelativeCanvas(ev: MouseEvent, opts: any) {
+  getMouseRelativeCanvas(ev: MouseEvent | { clientX: number; clientY: number }, opts: any) {
     const zoom = this.getZoomDecimal();
-    const { top = 0, left = 0 } = this.getCanvasView().getPosition(opts) ?? {};
+    const canvasView = this.getCanvasView();
+    const canvasPos = canvasView.getPosition(opts) ?? { top: 0, left: 0 };
+    const canvasScroll = canvasView.getCanvasScroll();
+    const { top, left } = {
+      top: canvasPos.top + canvasScroll.scrollTop,
+      left: canvasPos.left + canvasScroll.scrollLeft,
+    };
 
     return {
       y: ev.clientY * zoom + top,
       x: ev.clientX * zoom + left,
     };
+  }
+
+  /**
+   * Start custom drag-and-drop process.
+   *
+   * @param {DragSource<Component>} dragSource - The source object for the drag operation, containing the component being dragged.
+   * @example
+   * // as component definition
+   * canvas.startDrag({
+   *  content: { type: 'my-component' }
+   * });
+   * // as HTML
+   * canvas.startDrag({
+   *  content: '<div>...</div>'
+   * });
+   */
+  startDrag(dragSource: DragSource<Component>) {
+    this.em.set('dragSource', dragSource);
+  }
+
+  /**
+   * Ends the drag-and-drop process, resetting the drag source and clearing any drag results.
+   * This method can be used to finalize custom drag-and-drop content operations.
+   * @example
+   * canvas.startDrag({...});
+   * // ... drag finished ...
+   * canvas.endDrag();
+   */
+  endDrag() {
+    this.em.set({ dragResult: null, dragSource: undefined });
   }
 
   /**
@@ -543,7 +594,7 @@ export default class CanvasModule extends Module<CanvasConfig> {
    * const selected = editor.getSelected();
    * // Scroll smoothly (this behavior can be polyfilled)
    * canvas.scrollTo(selected, { behavior: 'smooth' });
-   * // Force the scroll, even if the element is alredy visible
+   * // Force the scroll, even if the element is already visible
    * canvas.scrollTo(selected, { force: true });
    */
   scrollTo(el: any, opts = {}) {
@@ -559,6 +610,13 @@ export default class CanvasModule extends Module<CanvasConfig> {
   startAutoscroll(frame?: Frame) {
     const fr = (frame && frame.view) || this.em.getCurrentFrame();
     fr && fr.startAutoscroll();
+
+    if (this.config.scrollableCanvas) {
+      const el = this.getCanvasView().el;
+      this.autoScroller.start(el, el, {
+        zoom: this.em.getZoomDecimal(),
+      });
+    }
   }
 
   /**
@@ -568,6 +626,10 @@ export default class CanvasModule extends Module<CanvasConfig> {
   stopAutoscroll(frame?: Frame) {
     const fr = (frame && frame.view) || this.em.getCurrentFrame();
     fr && fr.stopAutoscroll();
+
+    if (this.config.scrollableCanvas) {
+      this.autoScroller.stop();
+    }
   }
 
   /**
@@ -665,6 +727,7 @@ export default class CanvasModule extends Module<CanvasConfig> {
   }
 
   toggleFramesEvents(on: boolean) {
+    // Seems like this causing a bug for iframes in Chrome: https://issues.chromium.org/issues/41336877
     const { style } = this.getFramesEl();
     style.pointerEvents = on ? '' : 'none';
   }

@@ -8,19 +8,7 @@
  * });
  * ```
  *
- * ## Available Events
- *
- * You can make use of available events in this way
- * ```js
- * editor.on('EVENT-NAME', (some, argument) => {
- *    // do something
- * })
- * ```
- *
- * * `update` - The structure of the template is updated (its HTML/CSS)
- * * `undo` - Undo executed
- * * `redo` - Redo executed
- * * `load` - Editor is loaded
+ * {REPLACE_EVENTS}
  *
  * ### Components
  * Check the [Components](/api/components.html) module.
@@ -71,7 +59,7 @@ import ComponentManager, { ComponentEvent } from '../dom_components';
 import Component from '../dom_components/model/Component';
 import Components from '../dom_components/model/Components';
 import ComponentWrapper from '../dom_components/model/ComponentWrapper';
-import { ComponentAdd, DragMode } from '../dom_components/model/types';
+import { AddComponentsOption, ComponentAdd, DragMode } from '../dom_components/model/types';
 import I18nModule from '../i18n';
 import KeymapsModule, { KeymapEvent } from '../keymaps';
 import ModalModule, { ModalEvent } from '../modal_dialog';
@@ -89,8 +77,9 @@ import TraitManager from '../trait_manager';
 import UndoManagerModule from '../undo_manager';
 import UtilsModule from '../utils';
 import html from '../utils/html';
-import defaults, { EditorConfig, EditorConfigKeys } from './config/config';
+import defConfig, { EditorConfig, EditorConfigKeys } from './config/config';
 import EditorModel, { EditorLoadOptions } from './model/Editor';
+import { EditorEvents } from './types';
 import EditorView from './view/EditorView';
 
 export type ParsedRule = {
@@ -130,8 +119,10 @@ export default class Editor implements IBaseModule<EditorConfig> {
   $: any;
   em: EditorModel;
   config: EditorConfigType;
+  events = EditorEvents;
 
   constructor(config: EditorConfig = {}, opts: any = {}) {
+    const defaults = defConfig();
     this.config = {
       ...defaults,
       ...config,
@@ -326,7 +317,7 @@ export default class Editor implements IBaseModule<EditorConfig> {
    *   content: 'New component'
    * });
    */
-  setComponents(components: ComponentAdd, opt: AddOptions = {}) {
+  setComponents(components: ComponentAdd, opt: AddComponentsOption = {}) {
     this.em.setComponents(components, opt);
     return this;
   }

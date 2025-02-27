@@ -75,7 +75,7 @@ export default class PageManager extends ItemManagerModule<PageManagerConfig, Pa
   constructor(em: EditorModel) {
     super(em, 'PageManager', new Pages([], em), PagesEvents);
     bindAll(this, '_onPageChange');
-    const model = new ModuleModel({ _undo: true } as any);
+    const model = new ModuleModel(this, { _undo: true });
     this.model = model;
     this.pages.on('reset', (coll) => coll.at(0) && this.select(coll.at(0)));
     this.pages.on('all', this.__onChange, this);
@@ -157,6 +157,41 @@ export default class PageManager extends ItemManagerModule<PageManagerConfig, Pa
     };
     !opts.silent && em.trigger(events.removeBefore, pg, rm, opts);
     return !opts.abort && rm();
+  }
+
+  /**
+   * Move a page to a specific index in the pages collection.
+   * If the index is out of bounds, the page will not be moved.
+   *
+   * @param {string|[Page]} page Page or page id to move.
+   * @param {Object} [opts] Move options
+   * @param {number} [opts.at] The target index where the page should be moved.
+   * @returns {Page | undefined} The moved page, or `undefined` if the page does not exist or the index is out of bounds.
+   * @example
+   * // Move a page to index 2
+   * const movedPage = pageManager.move('page-id', { at: 2 });
+   * if (movedPage) {
+   *   console.log('Page moved successfully:', movedPage);
+   * } else {
+   *   console.log('Page could not be moved.');
+   * }
+   */
+  move(page: string | Page, opts: AddOptions = {}): Page | undefined {
+    const { pages } = this;
+    const pg = isString(page) ? this.get(page) : page;
+    const { at = 0, ...resOpts } = opts;
+
+    if (!pg) return;
+
+    const currIndex = pages.indexOf(pg);
+    const sameIndex = currIndex === at;
+
+    if (at < 0 || at >= pages.length || sameIndex) return;
+
+    this.remove(pg, { ...resOpts, temporary: true });
+    pages.add(pg, { ...resOpts, at });
+
+    return pg;
   }
 
   /**
